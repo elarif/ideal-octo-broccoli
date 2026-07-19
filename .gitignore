@@ -1,0 +1,34 @@
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build outputs
+dist/
+.astro/
+.output/
+.next/
+node_modules/
+
+# Cache
+.cache/
+.turbo/
+.wrangler/
+
+# Test
+coverage/
+playwright-report/
+test-results/
+.lighthouseci/
