@@ -1,0 +1,21 @@
+---
+const nav = [
+  { href: "/", label: "Accueil" },
+];
+---
+<header class="border-b p-4">
+  <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+    <a href="/" class="text-xl font-semibold text-primary" rel="home">Litteratureaudio.com</a>
+    <nav aria-label="Navigation principale">
+      <ul class="flex gap-4 text-sm">
+        {nav.map((item) => (
+          <li><a href={item.href} class="hover:underline">{item.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+    <form action="/" method="GET" class="hidden sm:flex gap-2">
+      <input type="search" name="q" placeholder="Recherche…" aria-label="Rechercher" class="border rounded px-2 py-1 text-sm" />
+      <button type="submit" class="bg-primary text-white px-3 py-1 rounded text-sm">OK</button>
+    </form>
+  </div>
+</header>

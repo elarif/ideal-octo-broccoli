@@ -1,0 +1,40 @@
+---
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+  canonical?: string;
+  image?: string;
+}
+
+const { title, description, canonical, image } = Astro.props;
+const siteUrl = Astro.site?.toString().replace(/\/$/, "") || "https://litterature.pages.dev";
+const canonicalUrl = canonical || new URL(Astro.url.pathname, siteUrl).toString();
+const imageUrl = image ? new URL(image, siteUrl).toString() : undefined;
+---
+<!doctype html>
+<html lang="fr-FR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:site_name" content="Litteratureaudio.com" />
+    {imageUrl && <meta property="og:image" content={imageUrl} />}
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+  </head>
+  <body class="min-h-screen flex flex-col">
+    <Header />
+    <main class="flex-1 max-w-6xl mx-auto w-full p-4">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

@@ -1,0 +1,68 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import Picture from "../../components/Picture.astro";
+import { formatDuration } from "../../lib/format-duration";
+
+export async function getStaticPaths() {
+  const books = await getCollection("books");
+  return books.map((book) => ({
+    params: { slug: book.data.slug },
+    props: { book },
+  }));
+}
+
+const { book } = Astro.props;
+const d = book.data;
+const authorsLabel = d.authors.map((a) => a.name).join(", ");
+const voicesLabel = d.voices.map((v) => v.name).join(", ");
+const genresLabel = d.genres.map((g) => g.name).join(", ");
+---
+<Base
+  title={`${d.title} | Litteratureaudio.com`}
+  description={d.excerpt || `Livre audio gratuit ${d.title} de ${authorsLabel}.`}
+  canonical={d.legacyUrl}
+  image={d.cover?.url}
+>
+  <article>
+    <header class="flex flex-col md:flex-row gap-6 mb-8">
+      {d.cover && (
+        <Picture
+          src={d.cover.url}
+          width={d.cover.width}
+          height={d.cover.height}
+          alt={d.cover.alt || d.title}
+          loading="eager"
+          fetchpriority="high"
+        />
+      )}
+      <div class="flex-1">
+        <h1 class="text-3xl font-bold mb-2">{d.title}</h1>
+        {authorsLabel && <p class="mb-1">De {authorsLabel}</p>}
+        {voicesLabel && <p class="mb-1">Lu par {voicesLabel}</p>}
+        <p class="mb-1">Durée : {formatDuration(d.durationTotal)}</p>
+        {genresLabel && <p class="mb-1">Genre : {genresLabel}</p>}
+      </div>
+    </header>
+
+    {d.content && (
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Description</h2>
+        <div class="prose max-w-none" set:html={d.content} />
+      </section>
+    )}
+
+    {d.tracks.length > 0 && (
+      <section>
+        <h2 class="text-2xl font-bold mb-4">Télécharger</h2>
+        <ul class="list-disc pl-5">
+          {d.tracks.map((t) => (
+            <li>
+              <a href={t.url} download class="text-primary hover:underline">{t.title}</a> ({formatDuration(t.duration)})
+            </li>
+          ))}
+        </ul>
+      </section>
+    )}
+  </article>
+</Base>

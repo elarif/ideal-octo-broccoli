@@ -6,6 +6,6 @@ export default defineConfig({
   site: process.env.SITE_URL || "https://litterature.pages.dev",
   output: "static",
   trailingSlash: "never",
-  build: { format: "directory" },
+  build: { format: "file" },
   integrations: [tailwind({ applyBaseStyles: false }), sitemap()],
 });
