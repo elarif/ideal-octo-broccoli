@@ -1,107 +1,132 @@
 import { env } from "./env";
-import type { WpMedia, WpPost, WpTerm } from "../../scripts/lib/wp-types";
 
-const DEFAULT_PER_PAGE = 100;
+export interface WpListParams {
+  page?: number;
+  perPage?: number;
+  search?: string;
+  embed?: boolean;
+  [k: string]: string | number | boolean | undefined;
+}
 
-function buildUrl(path: string, params?: Record<string, string | number | undefined>): URL {
-  const url = new URL(path, env.apiBase + "/");
-  if (params) {
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== undefined) {
-        url.searchParams.set(key, String(value));
-      }
+export interface WpPost {
+  id: number;
+  slug: string;
+  link: string;
+  title: { rendered: string };
+  content: { rendered: string };
+  excerpt: { rendered: string };
+  featured_media: number;
+  date_gmt: string;
+  modified_gmt: string;
+  auteur: number[];
+  voix: number[];
+  genre_livre: number[];
+  periode: number[];
+  region: number[];
+  licence: number[];
+  _embedded?: {
+    "wp:featuredmedia"?: Array<{
+      source_url: string;
+      alt_text: string;
+      media_details: { width: number; height: number; sizes: Record<string, { source_url: string; width: number; height: number }> };
+    }>;
+    "wp:term"?: Array<Array<{ id: number; slug: string; name: string; taxonomy: string }>>;
+  };
+}
+
+export interface WpMedia {
+  id: number;
+  slug: string;
+  title: { rendered: string };
+  mime_type: string;
+  source_url: string;
+  media_details?: { filesize?: number; length?: number; menu_order?: number };
+}
+
+export interface WpTerm {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  count: number;
+}
+
+class WpClient {
+  private base: string;
+  constructor(base: string) { this.base = base.replace(/\/$/, ""); }
+
+  private async req(path: string, params: WpListParams = {}): Promise<{ data: unknown; headers: Headers }> {
+    const url = new URL(`${this.base}${path}`);
+    for (const [k, v] of Object.entries(params)) {
+      if (v === undefined || v === null) continue;
+      url.searchParams.set(k === "embed" ? "_embed" : k, String(v));
     }
+    const resp = await fetch(url.toString(), { headers: { accept: "application/json" } });
+    if (!resp.ok) throw new Error(`WP API ${resp.status} ${url.toString()}`);
+    return { data: await resp.json(), headers: resp.headers };
   }
-  return url;
-}
 
-async function fetchJson<T>(url: URL): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`WP API error ${res.status} ${res.statusText}: ${body.slice(0, 500)}`);
-  }
-  return res.json() as Promise<T>;
-}
-
-function readTotalPages(res: Response): number {
-  const header = res.headers.get("X-WP-TotalPages");
-  return header ? Number(header) : 1;
-}
-
-function readTotal(res: Response): number {
-  const header = res.headers.get("X-WP-Total");
-  return header ? Number(header) : 0;
-}
-
-export const wpClient = {
-  async listPosts(params?: { per_page?: number; page?: number }) {
-    const url = buildUrl("/wp-json/wp/v2/posts", {
-      _embed: 1,
-      per_page: params?.per_page ?? DEFAULT_PER_PAGE,
-      page: params?.page,
-    });
-    const res = await fetch(url);
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`WP posts error ${res.status}: ${body.slice(0, 500)}`);
-    }
-    const posts = (await res.json()) as WpPost[];
+  async listPosts(params: WpListParams = {}): Promise<{ posts: WpPost[]; totalPages: number; total: number }> {
+    const { data, headers } = await this.req("/wp-json/wp/v2/posts", { perPage: 100, ...params });
     return {
-      posts,
-      total: readTotal(res),
-      totalPages: readTotalPages(res),
+      posts: data as WpPost[],
+      totalPages: Number(headers.get("x-wp-totalpages") || 1),
+      total: Number(headers.get("x-wp-total") || 0),
     };
-  },
+  }
 
-  async getPost(id: number): Promise<WpPost> {
-    const url = buildUrl(`/wp-json/wp/v2/posts/${id}`, { _embed: 1 });
-    return fetchJson<WpPost>(url);
-  },
+  async getPost(id: number, { embed = true } = {}): Promise<WpPost> {
+    const { data } = await this.req(`/wp-json/wp/v2/posts/${id}`, { embed });
+    return data as WpPost;
+  }
 
-  async listTerms(taxonomy: string, params?: { per_page?: number; page?: number }) {
-    const url = buildUrl(`/wp-json/wp/v2/${taxonomy}`, {
-      per_page: params?.per_page ?? DEFAULT_PER_PAGE,
-      page: params?.page,
-    });
-    const res = await fetch(url);
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`WP terms error ${res.status} for ${taxonomy}: ${body.slice(0, 500)}`);
-    }
-    return (await res.json()) as WpTerm[];
-  },
-
-  async getMediaChildren(postId: number, params?: { per_page?: number; page?: number }) {
-    const url = buildUrl("/wp-json/wp/v2/media", {
-      parent: postId,
-      per_page: params?.per_page ?? DEFAULT_PER_PAGE,
-      page: params?.page,
-    });
-    const res = await fetch(url);
-    if (res.status === 400) {
-      const body = await res.text();
-      if (/rest_post_invalid_id/i.test(body)) {
-        return [] as WpMedia[];
-      }
-    }
-    if (!res.ok) {
-      const body = await res.text();
-      throw new Error(`WP media error ${res.status} for post ${postId}: ${body.slice(0, 500)}`);
-    }
-    return (await res.json()) as WpMedia[];
-  },
-
-  async* paginatePosts(perPage?: number) {
+  async listTerms(taxonomy: string): Promise<WpTerm[]> {
+    const all: WpTerm[] = [];
     let page = 1;
     let totalPages = 1;
-    do {
-      const batch = await this.listPosts({ per_page: perPage ?? DEFAULT_PER_PAGE, page });
-      totalPages = batch.totalPages;
-      for (const post of batch.posts) {
-        yield post;
+    while (page <= totalPages) {
+      const { data, headers } = await this.req(`/wp-json/wp/v2/${taxonomy}`, { perPage: 100, page });
+      all.push(...(data as WpTerm[]));
+      totalPages = Number(headers.get("x-wp-totalpages") || 1);
+      page++;
+    }
+    return all;
+  }
+
+  async getMediaChildren(postId: number): Promise<WpMedia[]> {
+    const all: WpMedia[] = [];
+    let page = 1;
+    let totalPages = 1;
+    while (page <= totalPages) {
+      try {
+        const { data, headers } = await this.req("/wp-json/wp/v2/media", {
+          parent: postId, perPage: 100, page, orderby: "menu_order", order: "asc",
+        });
+        all.push(...(data as WpMedia[]));
+        totalPages = Number(headers.get("x-wp-totalpages") || 1);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        if (/\b400\b/.test(msg)) {
+          // parent invalide ou autre erreur WP => pas de médias enfants
+          return [];
+        }
+        throw err;
       }
       page++;
-    } while (page <= totalPages);
-  },
-};
+    }
+    return all.filter((m) => m.mime_type.startsWith("audio/"));
+  }
+
+  async *paginatePosts(): AsyncGenerator<WpPost> {
+    let page = 1;
+    let totalPages = 1;
+    while (page <= totalPages) {
+      const { posts, totalPages: tp } = await this.listPosts({ page, embed: true });
+      totalPages = tp;
+      for (const p of posts) yield p;
+      page++;
+    }
+  }
+}
+
+export const wpClient = new WpClient(env.apiBase);
