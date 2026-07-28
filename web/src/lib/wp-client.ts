@@ -59,7 +59,11 @@ class WpClient {
     const url = new URL(`${this.base}${path}`);
     for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue;
-      url.searchParams.set(k === "embed" ? "_embed" : k, String(v));
+      const key =
+        k === "embed" ? "_embed" :
+        k === "perPage" ? "per_page" :
+        k;
+      url.searchParams.set(key, String(v));
     }
     const resp = await fetch(url.toString(), { headers: { accept: "application/json" } });
     if (!resp.ok) throw new Error(`WP API ${resp.status} ${url.toString()}`);
@@ -106,8 +110,8 @@ class WpClient {
         totalPages = Number(headers.get("x-wp-totalpages") || 1);
       } catch (err) {
         const msg = err instanceof Error ? err.message : "";
-        if (/\b400\b/.test(msg)) {
-          // parent invalide ou autre erreur WP => pas de médias enfants
+        if (/\b400\b/.test(msg) && /rest_post_invalid_id/.test(msg)) {
+          // parent invalide => pas de médias enfants
           return [];
         }
         throw err;
