@@ -1,12 +1,14 @@
 import type { RoutePolicy } from "./routes";
 import { normalizeHeaders } from "./normalize";
 
-const CACHE_BUST = /([?&]_=\d+)/;
-
 export function makeCacheKey(req: Request): string {
   const url = new URL(req.url);
-  url.search = url.search.replace(CACHE_BUST, "").replace(/^[?&]/, "?");
-  return url.pathname + url.search;
+  const params = new URLSearchParams();
+  for (const [key, value] of url.searchParams) {
+    if (key !== "_") params.append(key, value);
+  }
+  const search = params.toString();
+  return url.pathname + (search ? `?${search}` : "");
 }
 
 export async function serveFromCache(
