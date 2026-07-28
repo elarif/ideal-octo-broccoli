@@ -19,35 +19,19 @@ function singleTerm(post: WpPost, taxonomy: string) {
   return termMap(post, taxonomy)[0];
 }
 
-const CONCURRENCY = 10;
-
 async function main() {
   console.log(`Mode ${dryRun ? "dry-run" : "apply"}`);
   let bookCount = 0;
   let trackCount = 0;
   let missingTracks = 0;
 
-  const buffer: WpPost[] = [];
-
-  async function flush() {
-    const results = await Promise.all(
-      buffer.map((post) => wpClient.getMediaChildren(post.id))
-    );
-    for (const tracks of results) {
-      trackCount += tracks.length;
-      if (tracks.length === 0) missingTracks++;
-    }
-    buffer.length = 0;
-  }
-
   for await (const post of wpClient.paginatePosts()) {
     bookCount++;
-    buffer.push(post);
-    if (buffer.length >= CONCURRENCY) await flush();
+    const tracks = await wpClient.getMediaChildren(post.id);
+    trackCount += tracks.length;
+    if (tracks.length === 0) missingTracks++;
     if (bookCount % 100 === 0) console.log(`  ${bookCount} livres scannés…`);
   }
-
-  if (buffer.length > 0) await flush();
 
   const report = {
     bookCount,
