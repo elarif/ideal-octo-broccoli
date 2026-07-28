@@ -1,0 +1,15 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+.astro/
+.output/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Generated files
+tmp/
