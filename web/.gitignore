@@ -12,4 +12,5 @@ dist/
 .env.*.local
 
 # Generated files
+src/content/*/
 tmp/

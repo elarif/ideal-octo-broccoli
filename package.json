@@ -1,0 +1,7 @@
+{
+  "name": "litteratureaudio",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.6.0",
+  "workspaces": ["api-cache", "api", "web"]
+}
