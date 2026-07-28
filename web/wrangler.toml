@@ -1,0 +1,12 @@
+name = "litteratureaudio"
+compatibility_date = "2026-07-28"
+
+# Cloudflare Pages project configuration
+# Build output directory for Astro static build
+pages_build_output_dir = "dist"
+
+[env.production]
+name = "litteratureaudio"
+
+[env.preview]
+name = "litteratureaudio-preview"
