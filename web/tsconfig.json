@@ -4,12 +4,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@components/*": ["src/components/*"],
       "@lib/*": ["src/lib/*"],
-      "@content/*": ["src/content/*"]
-    },
-    "verbatimModuleSyntax": true,
-    "noUncheckedIndexedAccess": true
+      "@components/*": ["src/components/*"]
+    }
   },
   "include": ["src/**/*", "scripts/**/*", "*.config.ts"]
 }

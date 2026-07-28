@@ -7,31 +7,18 @@
     "prebuild": "pnpm fetch:content",
     "build": "astro build",
     "dev": "astro dev",
-    "check": "astro check",
-    "test": "vitest run",
-    "lint": "biome check .",
-    "migrate:dry-run": "tsx scripts/migrate-wp-to-pg.ts --dry-run"
+    "check": "astro check"
   },
   "dependencies": {
-    "@astrojs/react": "^3.6.0",
     "@astrojs/sitemap": "^3.1.0",
     "@astrojs/tailwind": "^5.1.0",
     "astro": "^4.12.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
     "tailwindcss": "^3.4.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.8.0",
-    "@lhci/cli": "^0.14.0",
-    "@testing-library/dom": "^10.3.0",
-    "@testing-library/react": "^16.0.0",
     "@types/node": "^20.14.0",
-    "@types/react": "^18.3.0",
-    "@types/react-dom": "^18.3.0",
     "tsx": "^4.16.0",
-    "typescript": "^5.5.0",
-    "vitest": "^2.0.0"
+    "typescript": "^5.5.0"
   }
 }

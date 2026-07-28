@@ -1,6 +1,0 @@
-name = "litteratureaudio-api-cache"
-main = "src/index.ts"
-compatibility_date = "2026-07-01"
-
-[vars]
-WP_ORIGIN = "https://www.litteratureaudio.com"
