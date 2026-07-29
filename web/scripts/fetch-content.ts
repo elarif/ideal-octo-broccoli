@@ -5,6 +5,37 @@ import { wpClient, type WpPost, type WpMedia } from "../src/lib/wp-client";
 const OUT = join(process.cwd(), "src/content/books");
 const FETCH_LIMIT = Number(process.env.FETCH_LIMIT || "500");
 
+const HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  rsquo: "’",
+  lsquo: "‘",
+  rdquo: "”",
+  ldquo: "“",
+  ndash: "–",
+  mdash: "—",
+  hellip: "…",
+  nbsp: " ",
+  "#8230": "…",
+  "#8217": "’",
+  "#8216": "‘",
+  "#8220": "”",
+  "#8221": "”",
+  "#8211": "–",
+  "#8212": "—",
+  "#160": " ",
+};
+
+function decodeHtml(input: string): string {
+  return input
+    .replace(/&([a-zA-Z][a-zA-Z0-9]*);/g, (_, name) => HTML_ENTITIES[name] || `&${name};`)
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
+}
+
 function termMap(post: WpPost, taxonomy: string): Array<{ id: number; slug: string; name: string }> {
   const groups = post._embedded?.["wp:term"] || [];
   for (const group of groups) {
@@ -21,7 +52,7 @@ function extractCover(post: WpPost) {
     url: fm.source_url,
     width: fm.media_details.width,
     height: fm.media_details.height,
-    alt: fm.alt_text || post.title.rendered,
+    alt: decodeHtml(fm.alt_text || post.title.rendered),
   };
 }
 
@@ -62,8 +93,8 @@ async function main() {
     const book = {
       id: post.id,
       slug: post.slug,
-      title: post.title.rendered,
-      excerpt: post.excerpt.rendered.replace(/<[^>]+>/g, "").trim(),
+      title: decodeHtml(post.title.rendered),
+      excerpt: decodeHtml(post.excerpt.rendered.replace(/<[^>]+>/g, "").trim()),
       content: post.content.rendered,
       cover: extractCover(post),
       durationTotal,
@@ -73,7 +104,7 @@ async function main() {
       tracks: tracks.map((m, i) => ({
         id: m.id,
         slug: m.slug,
-        title: m.title.rendered,
+        title: decodeHtml(m.title.rendered),
         order: m.media_details?.menu_order ?? i,
         url: m.source_url,
         duration: m.media_details?.length ?? 0,
