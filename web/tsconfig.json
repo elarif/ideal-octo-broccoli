@@ -6,7 +6,9 @@
       "@/*": ["src/*"],
       "@lib/*": ["src/lib/*"],
       "@components/*": ["src/components/*"]
-    }
+    },
+    "jsx": "react-jsx",
+    "jsxImportSource": "react"
   },
   "include": ["src/**/*", "scripts/**/*", "*.config.ts"]
 }
