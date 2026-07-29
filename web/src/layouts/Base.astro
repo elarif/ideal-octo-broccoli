@@ -1,6 +1,8 @@
 ---
 import Header from "../components/Header.astro";
 import Footer from "../components/Footer.astro";
+import { AudioProvider } from "../components/Player/AudioProvider";
+import { GlobalPlayer } from "../components/Player/GlobalPlayer";
 import "../styles/global.css";
 
 interface Props {
@@ -11,7 +13,7 @@ interface Props {
 }
 
 const { title, description, canonical, image } = Astro.props;
-const siteUrl = Astro.site?.toString().replace(/\/$/, "") || "https://litterature.pages.dev";
+const siteUrl = Astro.site?.toString().replace(/\/$/, "") || "https://litteratureaudio.pages.dev";
 const canonicalUrl = canonical || new URL(Astro.url.pathname, siteUrl).toString();
 const imageUrl = image ? new URL(image, siteUrl).toString() : undefined;
 ---
@@ -28,13 +30,22 @@ const imageUrl = image ? new URL(image, siteUrl).toString() : undefined;
     <meta property="og:url" content={canonicalUrl} />
     <meta property="og:site_name" content="Litteratureaudio.com" />
     {imageUrl && <meta property="og:image" content={imageUrl} />}
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+    <meta name="twitter:site" content="@littaudio" />
+    <meta name="twitter:creator" content="@littaudio" />
     <link rel="icon" href="/favicon.ico" sizes="32x32" />
   </head>
   <body class="min-h-screen flex flex-col">
-    <Header />
-    <main class="flex-1 max-w-6xl mx-auto w-full p-4">
-      <slot />
-    </main>
-    <Footer />
+    <AudioProvider client:load>
+      <Header />
+      <main class="flex-1 max-w-6xl mx-auto w-full p-4 pb-24">
+        <slot />
+      </main>
+      <Footer />
+      <GlobalPlayer client:load />
+    </AudioProvider>
   </body>
 </html>
