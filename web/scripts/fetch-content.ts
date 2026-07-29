@@ -1,8 +1,9 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { wpClient, type WpPost, type WpMedia } from "../src/lib/wp-client";
+import { fetchTaxonomies } from "../src/lib/fetch-taxonomies";
 
-const OUT = join(process.cwd(), "src/content/books");
+const BOOKS_OUT = join(process.cwd(), "src/content/books");
 const FETCH_LIMIT = Number(process.env.FETCH_LIMIT || "500");
 
 const HTML_ENTITIES: Record<string, string> = {
@@ -57,7 +58,9 @@ function extractCover(post: WpPost) {
 }
 
 async function main() {
-  await mkdir(OUT, { recursive: true });
+  await fetchTaxonomies(join(process.cwd(), "src/content"));
+
+  await mkdir(BOOKS_OUT, { recursive: true });
   console.log(`→ Fetch up to ${FETCH_LIMIT} books from WordPress…`);
   const posts: WpPost[] = [];
   for await (const post of wpClient.paginatePosts()) {
@@ -101,6 +104,10 @@ async function main() {
       authors: termMap(post, "auteur"),
       voices: termMap(post, "voix"),
       genres: termMap(post, "genre_livre"),
+      periods: termMap(post, "periode"),
+      regions: termMap(post, "region"),
+      licences: termMap(post, "licence"),
+      tags: termMap(post, "post_tag"),
       tracks: tracks.map((m, i) => ({
         id: m.id,
         slug: m.slug,
@@ -111,14 +118,15 @@ async function main() {
         size: m.media_details?.filesize ?? 0,
       })),
       views: 0,
+      commentCount: 0,
       publishedAt: post.date_gmt,
       modifiedAt: post.modified_gmt,
       legacyUrl: post.link,
     };
-    await writeFile(join(OUT, `${post.slug}.json`), JSON.stringify(book, null, 2));
+    await writeFile(join(BOOKS_OUT, `${post.slug}.json`), JSON.stringify(book, null, 2));
     written++;
   }
-  console.log(`✓ ${written} books written to ${OUT}`);
+  console.log(`✓ ${written} books written to ${BOOKS_OUT}`);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -4,6 +4,8 @@ export interface WpTerm {
   id: number;
   slug: string;
   name: string;
+  description?: string;
+  count?: number;
 }
 
 export interface WpPost {
@@ -63,6 +65,23 @@ class WpClient {
       const posts = data as WpPost[];
       totalPages = Number(headers.get("x-wp-totalpages") || 1);
       for (const p of posts) yield p;
+      page++;
+    }
+  }
+
+  async *paginateTerms(taxonomy: string): AsyncGenerator<WpTerm> {
+    let page = 1;
+    let totalPages = 1;
+    while (page <= totalPages) {
+      const { data, headers } = await this.req(`/wp-json/wp/v2/${taxonomy}`, {
+        perPage: 100,
+        page,
+        hide_empty: true,
+        _fields: "id,slug,name,description,count",
+      });
+      const terms = data as WpTerm[];
+      totalPages = Number(headers.get("x-wp-totalpages") || 1);
+      for (const t of terms) yield t;
       page++;
     }
   }

@@ -32,12 +32,37 @@ const books = defineCollection({
     authors: z.array(TermRef),
     voices: z.array(TermRef),
     genres: z.array(TermRef),
+    periods: z.array(TermRef),
+    regions: z.array(TermRef),
+    licences: z.array(TermRef),
+    tags: z.array(TermRef),
     tracks: z.array(Track),
     views: z.number().int().nonnegative().default(0),
+    commentCount: z.number().int().nonnegative().default(0),
     publishedAt: z.coerce.date(),
     modifiedAt: z.coerce.date(),
     legacyUrl: z.string().url(),
   }),
 });
 
-export const collections = { books };
+const termCollection = defineCollection({
+  type: "data",
+  schema: z.object({
+    id: z.number().int().positive(),
+    slug: z.string(),
+    name: z.string(),
+    description: z.string().default(""),
+    count: z.number().int().nonnegative().default(0),
+  }),
+});
+
+export const collections = {
+  books,
+  authors: termCollection,
+  voices: termCollection,
+  genres: termCollection,
+  periods: termCollection,
+  regions: termCollection,
+  licences: termCollection,
+  tags: termCollection,
+};
