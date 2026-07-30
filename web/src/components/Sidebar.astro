@@ -1,0 +1,58 @@
+---
+import { getCollection } from "astro:content";
+
+const books = await getCollection("books");
+const totalBooks = books.length;
+
+const menuGroups = [
+  {
+    title: "Livres audio",
+    items: [
+      { href: "/", label: `Accueil (${totalBooks})` },
+      { href: "/classement-de-nos-livres-audio-gratuits-les-plus-apprecies", label: "Les plus aimés" },
+      { href: "/nos-derniers-livres-audio-gratuits", label: "Nouveautés" },
+      { href: "/notre-bibliotheque-de-livres-audio-gratuits", label: "Par genre" },
+      { href: "/classement-de-nos-livres-audio-gratuits-par-auteur", label: "Par auteur" },
+      { href: "/classement-de-nos-livres-audio-gratuits-par-donneur-ou-donneuse-de-voix", label: "Par donneur de voix" },
+      { href: "/recherche", label: "Recherche avancée" },
+    ],
+  },
+  {
+    title: "Communauté",
+    items: [
+      { href: "#", label: "Derniers commentaires", disabled: true },
+      { href: "#", label: "Livre d'or", disabled: true },
+      { href: "#", label: "Forums", disabled: true },
+      { href: "/notre-association", label: "Notre association" },
+      { href: "/nous-aider", label: "Nous aider" },
+    ],
+  },
+  {
+    title: "Espace Perso",
+    items: [
+      { href: "#", label: "Profil", disabled: true },
+      { href: "#", label: "Favoris", disabled: true },
+    ],
+  },
+];
+---
+
+<aside id="sidebar" class="hidden md:block w-64 border-r bg-gray-50 p-4 sticky top-0 h-screen overflow-y-auto">
+  <a href="/" class="text-xl font-semibold text-primary block mb-6">Litteratureaudio.com</a>
+  {menuGroups.map((group) => (
+    <nav class="mb-6" aria-label={group.title}>
+      <h2 class="text-xs font-bold uppercase text-gray-500 mb-2">{group.title}</h2>
+      <ul class="space-y-1">
+        {group.items.map((item) => (
+          <li>
+            {item.disabled ? (
+              <span class="block px-2 py-1 text-gray-400 cursor-not-allowed">{item.label}</span>
+            ) : (
+              <a href={item.href} class="block px-2 py-1 rounded hover:bg-gray-200 text-gray-800">{item.label}</a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </nav>
+  ))}
+</aside>

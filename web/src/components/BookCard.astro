@@ -1,7 +1,10 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { formatDuration } from "../lib/format-duration";
+import { formatViews } from "../lib/format-views";
 import Picture from "./Picture.astro";
+import { PlayButton } from "./Player/PlayButton";
+import type { AudioBook } from "../types/audio";
 
 interface Props {
   book: CollectionEntry<"books">;
@@ -10,19 +13,48 @@ interface Props {
 const { book } = Astro.props;
 const d = book.data;
 const authorsLabel = d.authors.map((a) => a.name).join(", ");
+
+const audioBook: AudioBook = {
+  slug: d.slug,
+  title: d.title,
+  authorsLabel,
+  coverUrl: d.cover?.url,
+  tracks: d.tracks.map((t) => ({
+    id: t.id,
+    slug: t.slug,
+    title: t.title,
+    url: t.url,
+    duration: t.duration,
+  })),
+};
 ---
-<article class="border rounded p-2 hover:shadow transition">
+
+<article class="border rounded overflow-hidden hover:shadow transition group relative">
   <a href={`/livre-audio-gratuit-mp3/${d.slug}.html`} class="block">
-    {d.cover && (
-      <Picture
-        src={d.cover.url}
-        width={d.cover.width}
-        height={d.cover.height}
-        alt={d.cover.alt || d.title}
-      />
-    )}
-    <div class="text-xs text-gray-600 mt-1">{formatDuration(d.durationTotal)}</div>
-    <h3 class="font-semibold leading-tight mt-1">{d.title}</h3>
-    {authorsLabel && <p class="text-sm text-gray-700">{authorsLabel}</p>}
+    <figure class="relative">
+      {d.cover && (
+        <Picture
+          src={d.cover.url}
+          width={d.cover.width}
+          height={d.cover.height}
+          alt={d.cover.alt || d.title}
+        />
+      )}
+      <span class="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+        {formatDuration(d.durationTotal)}
+      </span>
+      {d.views > 0 && (
+        <span class="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded flex items-center gap-1">
+          ▶ {formatViews(d.views)}
+        </span>
+      )}
+    </figure>
+    <div class="p-3">
+      <h3 class="font-semibold leading-tight">{d.title}</h3>
+      {authorsLabel && <p class="text-sm text-gray-700 mt-1">{authorsLabel}</p>}
+    </div>
   </a>
+  <div class="absolute bottom-14 right-3 opacity-0 group-hover:opacity-100 transition">
+    <PlayButton client:visible book={audioBook} className="w-10 h-10 shadow" />
+  </div>
 </article>

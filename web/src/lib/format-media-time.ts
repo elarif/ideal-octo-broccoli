@@ -1,10 +1,9 @@
 export function formatMediaTime(seconds: number): string {
   if (!isFinite(seconds) || seconds < 0) return "0:00";
-  const s = Math.floor(seconds);
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  const h = Math.floor(m / 60);
-  const mm = h > 0 ? m % 60 : m;
-  const padded = rem.toString().padStart(2, "0");
-  return h > 0 ? `${h}:${mm.toString().padStart(2, "0")}:${padded}` : `${mm}:${padded}`;
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  if (h > 0) return `${h}:${pad(m)}:${pad(s)}`;
+  return `${m}:${pad(s)}`;
 }
