@@ -1,0 +1,19 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import { SearchClient } from "../components/SearchClient";
+
+const books = await getCollection("books");
+const docs = books.map((b) => ({
+  slug: b.data.slug,
+  title: b.data.title,
+  authors: b.data.authors.map((a) => a.name),
+  voices: b.data.voices.map((v) => v.name),
+  genres: b.data.genres.map((g) => g.name),
+}));
+---
+
+<Base title="Recherche | Litteratureaudio.com" description="Recherchez parmi plus de 9000 livres audio gratuits.">
+  <h1 class="text-2xl font-bold mb-4">Recherche avancée</h1>
+  <SearchClient client:load docs={docs} />
+</Base>

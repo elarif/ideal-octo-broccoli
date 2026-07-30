@@ -1,0 +1,12 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import AlphabeticalIndex from "../components/AlphabeticalIndex.astro";
+
+const voices = await getCollection("voices");
+const items = voices.map((v) => ({ slug: v.data.slug, name: v.data.name, count: v.data.count }));
+---
+
+<Base title="Classement par voix | Litteratureaudio.com" description="Parcourez les livres audio gratuits par donneur ou donneuse de voix.">
+  <AlphabeticalIndex items={items} baseUrl="/livre-audio-gratuit-mp3/voix" title="Par voix" />
+</Base>

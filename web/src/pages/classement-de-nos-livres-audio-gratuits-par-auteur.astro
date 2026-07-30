@@ -1,0 +1,12 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import AlphabeticalIndex from "../components/AlphabeticalIndex.astro";
+
+const authors = await getCollection("authors");
+const items = authors.map((a) => ({ slug: a.data.slug, name: a.data.name, count: a.data.count }));
+---
+
+<Base title="Classement par auteur | Litteratureaudio.com" description="Parcourez les livres audio gratuits par auteur.">
+  <AlphabeticalIndex items={items} baseUrl="/livre-audio-gratuit-mp3/auteur" title="Par auteur" />
+</Base>

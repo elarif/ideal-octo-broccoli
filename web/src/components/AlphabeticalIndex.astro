@@ -1,0 +1,42 @@
+---
+interface Item {
+  slug: string;
+  name: string;
+  count: number;
+}
+interface Props {
+  items: Item[];
+  baseUrl: string;
+  title: string;
+}
+const { items, baseUrl, title } = Astro.props;
+const groups = new Map<string, Item[]>();
+for (const item of items) {
+  const letter = item.name.trim().charAt(0).toUpperCase();
+  if (!groups.has(letter)) groups.set(letter, []);
+  groups.get(letter)!.push(item);
+}
+const sortedLetters = [...groups.keys()].sort();
+---
+
+<section>
+  <h1 class="text-2xl font-bold mb-4">{title}</h1>
+  <div class="flex flex-wrap gap-2 mb-6">
+    {sortedLetters.map((letter) => (
+      <a href={`#letter-${letter}`} class="px-3 py-1 border rounded hover:bg-gray-100">{letter}</a>
+    ))}
+  </div>
+  {sortedLetters.map((letter) => (
+    <div id={`letter-${letter}`} class="mb-6">
+      <h2 class="text-xl font-semibold mb-2">{letter}</h2>
+      <ul class="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {groups.get(letter)!.map((item) => (
+          <li>
+            <a href={`${baseUrl}/${item.slug}.html`} class="text-primary hover:underline">{item.name}</a>
+            <span class="text-sm text-gray-600"> ({item.count})</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  ))}
+</section>

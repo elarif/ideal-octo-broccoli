@@ -1,0 +1,24 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+
+const genres = await getCollection("genres");
+genres.sort((a, b) => b.data.count - a.data.count);
+---
+
+<Base
+  title="Notre bibliothèque de livres audio gratuits | Litteratureaudio.com"
+  description="Parcourez notre bibliothèque de livres audio gratuits par genre."
+>
+  <h1 class="text-2xl font-bold mb-6">Par genre</h1>
+  <ul class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    {genres.map((genre) => (
+      <li>
+        <a href={`/livre-audio-gratuit-mp3/genre/${genre.data.slug}.html`} class="block p-4 border rounded hover:shadow transition">
+          <span class="font-medium">{genre.data.name}</span>
+          <span class="text-sm text-gray-600 block">{genre.data.count} livre{genre.data.count > 1 ? "s" : ""}</span>
+        </a>
+      </li>
+    ))}
+  </ul>
+</Base>

@@ -1,0 +1,18 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../layouts/Base.astro";
+import BookList from "../components/BookList.astro";
+
+const allBooks = await getCollection("books");
+const books = [...allBooks].sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+
+const pageParam = Astro.url.searchParams.get("page");
+const currentPage = Math.max(1, Number(pageParam) || 1);
+---
+
+<Base
+  title="Nos derniers livres audio gratuits | Litteratureaudio.com"
+  description="Découvrez les derniers livres audio gratuits ajoutés sur Litteratureaudio.com."
+>
+  <BookList books={books} title="Nouveautés" currentPage={currentPage} pageSize={24} baseUrl="/nos-derniers-livres-audio-gratuits" />
+</Base>
