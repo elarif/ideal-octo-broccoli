@@ -1,8 +1,17 @@
 ---
 ---
-<header class="border-b p-4 bg-white sticky top-0 z-40">
-  <div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
-    <a href="/" class="text-xl font-semibold text-primary" rel="home">Litteratureaudio.com</a>
+<header class="border-b p-4 bg-white sticky top-0 z-30">
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <button
+        id="menu-toggle"
+        class="md:hidden text-gray-600 hover:text-primary p-1"
+        aria-label="Ouvrir le menu"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+      </button>
+      <a href="/" class="text-xl font-semibold text-primary" rel="home">Litteratureaudio.com</a>
+    </div>
 
     <form action="/recherche" method="GET" class="hidden sm:flex flex-1 max-w-md gap-2">
       <input
@@ -16,8 +25,12 @@
     </form>
 
     <nav aria-label="Navigation principale" class="flex items-center gap-3 text-sm">
-      <a href="#" class="text-gray-600 hover:text-primary" aria-label="Favoris">♥</a>
-      <a href="#" class="text-gray-600 hover:text-primary" aria-label="Se connecter">👤</a>
+      <a href="#" class="text-gray-600 hover:text-primary" aria-label="Favoris">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+      </a>
+      <a href="#" class="text-gray-600 hover:text-primary" aria-label="Se connecter">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      </a>
     </nav>
   </div>
 </header>
