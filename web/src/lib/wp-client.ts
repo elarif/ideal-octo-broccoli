@@ -21,6 +21,13 @@ export interface WpPost {
   auteur: number[];
   voix: number[];
   genre_livre: number[];
+  meta?: {
+    duration?: number;
+    stream?: string;
+    download_url?: string;
+    type?: "single" | "playlist";
+    items?: string[];
+  };
   _embedded?: {
     "wp:featuredmedia"?: Array<{
       source_url: string;
@@ -39,6 +46,10 @@ export interface WpMedia {
   source_url: string;
   post?: number;
   media_details?: { filesize?: number; length?: number; menu_order?: number };
+  meta?: {
+    duration?: number;
+    download_url?: string;
+  };
 }
 
 class WpClient {
@@ -105,6 +116,15 @@ class WpClient {
       page++;
     }
     return all.filter((m) => m.mime_type.startsWith("audio/"));
+  }
+
+  async getMediaByIds(ids: number[]): Promise<WpMedia[]> {
+    if (!ids.length) return [];
+    const { data } = await this.req("/wp-json/wp/v2/media", {
+      include: ids.join(","),
+      perPage: 100,
+    });
+    return data as WpMedia[];
   }
 }
 

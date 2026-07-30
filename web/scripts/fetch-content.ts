@@ -82,7 +82,7 @@ async function main() {
     const batch = posts.slice(i, i + CONCURRENCY);
     await Promise.all(
       batch.map(async (post) => {
-        const tracks = await wpClient.getMediaChildren(post.id);
+        const tracks = await fetchTracksForPost(post);
         tracksByParent.set(post.id, tracks);
       })
     );
@@ -94,10 +94,12 @@ async function main() {
   console.log("→ Write books JSON…");
   let written = 0;
   for (const post of posts) {
+    const metaDurationSec = Math.round((post.meta?.duration ?? 0) / 1000);
     const tracks = (tracksByParent.get(post.id) || []).sort((a, b) =>
       (a.media_details?.menu_order ?? a.id) - (b.media_details?.menu_order ?? b.id)
     );
-    const durationTotal = tracks.reduce((s, t) => s + (t.media_details?.length || 0), 0);
+    const tracksDurationTotal = tracks.reduce((s, t) => s + (t.media_details?.length ?? 0), 0);
+    const durationTotal = metaDurationSec || tracksDurationTotal;
     const slug = normalizeSlug(post.slug);
     const book = {
       id: post.id,
@@ -133,6 +135,55 @@ async function main() {
     written++;
   }
   console.log(`✓ ${written} books written to ${BOOKS_OUT}`);
+}
+
+function msToSec(ms?: number): number {
+  return Math.round((ms ?? 0) / 1000);
+}
+
+function parseItemId(item: string): number | undefined {
+  const match = item.match(/^\s*(\d+)\s*:/);
+  return match ? Number(match[1]) : undefined;
+}
+
+async function fetchTracksForPost(post: WpPost): Promise<WpMedia[]> {
+  const type = post.meta?.type ?? "single";
+  const stream = post.meta?.stream;
+  const downloadUrl = post.meta?.download_url;
+  const items = post.meta?.items;
+
+  if (type === "single" && (stream || downloadUrl)) {
+    return [{
+      id: post.id,
+      slug: normalizeSlug(post.slug),
+      title: { rendered: post.title.rendered },
+      mime_type: "audio/mpeg",
+      source_url: stream || downloadUrl || "",
+      media_details: { length: msToSec(post.meta?.duration), filesize: 0, menu_order: 0 },
+    }];
+  }
+
+  if (items && items.length > 0) {
+    const ids = items.map(parseItemId).filter((id): id is number => id !== undefined && !Number.isNaN(id));
+    if (ids.length) {
+      const media = await wpClient.getMediaByIds(ids);
+      const byId = new Map(media.map((m) => [m.id, m]));
+      return ids.map((id, i) => {
+        const m = byId.get(id);
+        const itemLabel = items[i]?.replace(/^\s*\d+\s*:\s*/, "") || `Piste ${i + 1}`;
+        return m ?? {
+          id,
+          slug: normalizeSlug(`${post.slug}-${i + 1}`),
+          title: { rendered: itemLabel },
+          mime_type: "audio/mpeg",
+          source_url: "",
+          media_details: { length: 0, filesize: 0, menu_order: i },
+        };
+      });
+    }
+  }
+
+  return wpClient.getMediaChildren(post.id);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
