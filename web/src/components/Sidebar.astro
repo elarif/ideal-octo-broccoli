@@ -20,9 +20,9 @@ const menuGroups = [
   {
     title: "Communauté",
     items: [
-      { href: "#", label: "Derniers commentaires", disabled: true },
-      { href: "#", label: "Livre d'or", disabled: true },
-      { href: "#", label: "Forums", disabled: true },
+      { href: "", label: "Derniers commentaires", soon: true },
+      { href: "", label: "Livre d'or", soon: true },
+      { href: "", label: "Forums", soon: true },
       { href: "/notre-association", label: "Notre association" },
       { href: "/nous-aider", label: "Nous aider" },
     ],
@@ -30,25 +30,46 @@ const menuGroups = [
   {
     title: "Espace Perso",
     items: [
-      { href: "#", label: "Profil", disabled: true },
-      { href: "#", label: "Favoris", disabled: true },
+      { href: "", label: "Profil", soon: true },
+      { href: "", label: "Favoris", soon: true },
     ],
   },
 ];
 ---
 
-<aside id="sidebar" class="hidden md:block w-64 border-r bg-gray-50 p-4 sticky top-0 h-screen overflow-y-auto">
-  <a href="/" class="text-xl font-semibold text-primary block mb-6">Litteratureaudio.com</a>
+<aside
+  id="sidebar"
+  class="fixed top-0 left-0 h-full w-64 z-50 bg-gray-50 border-r p-4 overflow-y-auto transform -translate-x-full transition-transform duration-300 md:static md:translate-x-0 md:sticky md:top-0 md:h-screen"
+>
+  <div class="flex items-center justify-between mb-6">
+    <a href="/" class="text-xl font-semibold text-primary">Litteratureaudio.com</a>
+    <button
+      id="sidebar-close"
+      class="md:hidden text-gray-500 hover:text-gray-800 p-1"
+      aria-label="Fermer le menu"
+    >
+      ✕
+    </button>
+  </div>
+
   {menuGroups.map((group) => (
     <nav class="mb-6" aria-label={group.title}>
       <h2 class="text-xs font-bold uppercase text-gray-500 mb-2">{group.title}</h2>
       <ul class="space-y-1">
         {group.items.map((item) => (
           <li>
-            {item.disabled ? (
-              <span class="block px-2 py-1 text-gray-400 cursor-not-allowed">{item.label}</span>
+            {item.soon ? (
+              <span class="flex items-center justify-between px-2 py-1 text-gray-400">
+                <span>{item.label}</span>
+                <span class="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">Bientôt</span>
+              </span>
             ) : (
-              <a href={item.href} class="block px-2 py-1 rounded hover:bg-gray-200 text-gray-800">{item.label}</a>
+              <a
+                href={item.href}
+                class="block px-2 py-1 rounded hover:bg-gray-200 text-gray-800"
+              >
+                {item.label}
+              </a>
             )}
           </li>
         ))}
