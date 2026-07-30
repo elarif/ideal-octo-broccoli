@@ -1,0 +1,34 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../../layouts/Base.astro";
+import BookList from "../../../components/BookList.astro";
+
+export async function getStaticPaths() {
+  const tags = await getCollection("tags");
+  return tags.map((tag) => ({ params: { slug: tag.data.slug } }));
+}
+
+const { slug } = Astro.params;
+const tag = await getCollection("tags").then((all) => all.find((t) => t.data.slug === slug));
+if (!tag) throw new Error(`Tag not found: ${slug}`);
+
+const allBooks = await getCollection("books");
+const books = allBooks.filter((b) => b.data.tags.some((t) => t.slug === slug));
+books.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+
+const pageParam = Astro.url.searchParams.get("page");
+const currentPage = Math.max(1, Number(pageParam) || 1);
+---
+
+<Base
+  title={`Livres audio ${tag.data.name} | Litteratureaudio.com`}
+  description={`Écoutez et téléchargez gratuitement les livres audio ${tag.data.name}.`}
+>
+  <BookList
+    books={books}
+    title={`Livres audio ${tag.data.name}`}
+    currentPage={currentPage}
+    pageSize={24}
+    baseUrl={`/livre-audio-gratuit-mp3/tag/${slug}.html`}
+  />
+</Base>

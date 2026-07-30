@@ -1,0 +1,21 @@
+---
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string;
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props;
+const hasPrev = currentPage > 1;
+const hasNext = currentPage < totalPages;
+---
+
+<nav aria-label="Pagination" class="flex justify-center gap-2 mt-8">
+  {hasPrev && (
+    <a href={`${baseUrl}?page=${currentPage - 1}`} class="px-3 py-1 border rounded hover:bg-gray-100">← Précédent</a>
+  )}
+  <span class="px-3 py-1">Page {currentPage} / {totalPages}</span>
+  {hasNext && (
+    <a href={`${baseUrl}?page=${currentPage + 1}`} class="px-3 py-1 border rounded hover:bg-gray-100">Suivant →</a>
+  )}
+</nav>

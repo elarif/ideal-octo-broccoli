@@ -1,0 +1,34 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../../layouts/Base.astro";
+import BookList from "../../../components/BookList.astro";
+
+export async function getStaticPaths() {
+  const periods = await getCollection("periods");
+  return periods.map((period) => ({ params: { slug: period.data.slug } }));
+}
+
+const { slug } = Astro.params;
+const period = await getCollection("periods").then((all) => all.find((p) => p.data.slug === slug));
+if (!period) throw new Error(`Period not found: ${slug}`);
+
+const allBooks = await getCollection("books");
+const books = allBooks.filter((b) => b.data.periods.some((p) => p.slug === slug));
+books.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+
+const pageParam = Astro.url.searchParams.get("page");
+const currentPage = Math.max(1, Number(pageParam) || 1);
+---
+
+<Base
+  title={`Livres audio ${period.data.name} | Litteratureaudio.com`}
+  description={`Écoutez et téléchargez gratuitement les livres audio ${period.data.name}.`}
+>
+  <BookList
+    books={books}
+    title={`Livres audio ${period.data.name}`}
+    currentPage={currentPage}
+    pageSize={24}
+    baseUrl={`/livre-audio-gratuit-mp3/periode/${slug}.html`}
+  />
+</Base>
