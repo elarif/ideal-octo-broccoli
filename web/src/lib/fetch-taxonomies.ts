@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { wpClient } from "./wp-client";
+import { normalizeSlug } from "./slug-normalize";
 
 const TAXONOMIES: Record<string, string> = {
   auteur: "authors",
@@ -18,14 +19,15 @@ export async function fetchTaxonomies(outRoot: string) {
     await mkdir(outDir, { recursive: true });
     let count = 0;
     for await (const term of wpClient.paginateTerms(wpTaxonomy)) {
+      const slug = normalizeSlug(term.slug);
       const payload = {
         id: term.id,
-        slug: term.slug,
+        slug,
         name: term.name,
         description: term.description || "",
         count: term.count || 0,
       };
-      await writeFile(join(outDir, `${term.slug}.json`), JSON.stringify(payload, null, 2));
+      await writeFile(join(outDir, `${slug}.json`), JSON.stringify(payload, null, 2));
       count++;
     }
     console.log(`✓ ${count} ${dirName} written`);

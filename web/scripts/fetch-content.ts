@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { wpClient, type WpPost, type WpMedia } from "../src/lib/wp-client";
 import { fetchTaxonomies } from "../src/lib/fetch-taxonomies";
+import { normalizeSlug } from "../src/lib/slug-normalize";
 
 const BOOKS_OUT = join(process.cwd(), "src/content/books");
 const FETCH_LIMIT = Number(process.env.FETCH_LIMIT || "500");
@@ -37,11 +38,15 @@ function decodeHtml(input: string): string {
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
 }
 
+function normalizeTerm(t: { id: number; slug: string; name: string }) {
+  return { id: t.id, slug: normalizeSlug(t.slug), name: t.name };
+}
+
 function termMap(post: WpPost, taxonomy: string): Array<{ id: number; slug: string; name: string }> {
   const groups = post._embedded?.["wp:term"] || [];
   for (const group of groups) {
     const matched = group.filter((t) => t.taxonomy === taxonomy);
-    if (matched.length) return matched.map((t) => ({ id: t.id, slug: t.slug, name: t.name }));
+    if (matched.length) return matched.map((t) => normalizeTerm({ id: t.id, slug: t.slug, name: t.name }));
   }
   return [];
 }
@@ -93,9 +98,10 @@ async function main() {
       (a.media_details?.menu_order ?? a.id) - (b.media_details?.menu_order ?? b.id)
     );
     const durationTotal = tracks.reduce((s, t) => s + (t.media_details?.length || 0), 0);
+    const slug = normalizeSlug(post.slug);
     const book = {
       id: post.id,
-      slug: post.slug,
+      slug,
       title: decodeHtml(post.title.rendered),
       excerpt: decodeHtml(post.excerpt.rendered.replace(/<[^>]+>/g, "").trim()),
       content: post.content.rendered,
@@ -110,7 +116,7 @@ async function main() {
       tags: termMap(post, "post_tag"),
       tracks: tracks.map((m, i) => ({
         id: m.id,
-        slug: m.slug,
+        slug: normalizeSlug(m.slug),
         title: decodeHtml(m.title.rendered),
         order: m.media_details?.menu_order ?? i,
         url: m.source_url,
@@ -123,7 +129,7 @@ async function main() {
       modifiedAt: post.modified_gmt,
       legacyUrl: post.link,
     };
-    await writeFile(join(BOOKS_OUT, `${post.slug}.json`), JSON.stringify(book, null, 2));
+    await writeFile(join(BOOKS_OUT, `${slug}.json`), JSON.stringify(book, null, 2));
     written++;
   }
   console.log(`✓ ${written} books written to ${BOOKS_OUT}`);
