@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Base from "../../layouts/Base.astro";
+import JsonLd from "../../components/JsonLd.astro";
 import Picture from "../../components/Picture.astro";
 import { TrackList } from "../../components/Player/TrackList";
 import { formatDuration } from "../../lib/format-duration";
@@ -45,6 +46,19 @@ const audioBook: AudioBook = {
   canonical={d.legacyUrl}
   image={d.cover?.url}
 >
+  <JsonLd
+    slot="jsonld"
+    data={{
+      "@context": "https://schema.org",
+      "@type": "Book",
+      name: d.title,
+      author: d.authors.map((a) => ({ "@type": "Person", name: a.name })),
+      description: d.excerpt,
+      image: d.cover?.url,
+      datePublished: d.publishedAt.toISOString(),
+      url: d.legacyUrl,
+    }}
+  />
   <article>
     <header class="flex flex-col md:flex-row gap-6 mb-8">
       {d.cover && (
