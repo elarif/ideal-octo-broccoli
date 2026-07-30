@@ -44,7 +44,7 @@ const imageUrl = image ? new URL(image, siteUrl).toString() : undefined;
     <slot name="jsonld" />
   </head>
   <body class="min-h-screen flex flex-col">
-    <AudioProvider>
+    <AudioProvider client:load>
       <Header />
       <main class="flex-1 max-w-6xl mx-auto w-full p-4 pb-24">
         <slot />
