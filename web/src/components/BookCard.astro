@@ -2,7 +2,6 @@
 import type { CollectionEntry } from "astro:content";
 import { formatDuration } from "../lib/format-duration";
 import { formatViews } from "../lib/format-views";
-import Picture from "./Picture.astro";
 import { PlayButton } from "./Player/PlayButton";
 import type { AudioBook } from "../types/audio";
 
@@ -31,13 +30,16 @@ const audioBook: AudioBook = {
 
 <article class="border rounded overflow-hidden hover:shadow transition group relative">
   <a href={`/livre-audio-gratuit-mp3/${d.slug}.html`} class="block">
-    <figure class="relative">
+    <figure class="relative aspect-[3/4] overflow-hidden bg-gray-100">
       {d.cover && (
-        <Picture
+        <img
           src={d.cover.url}
           width={d.cover.width}
           height={d.cover.height}
           alt={d.cover.alt || d.title}
+          loading="lazy"
+          decoding="async"
+          class="w-full h-full object-cover"
         />
       )}
       <span class="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
@@ -54,7 +56,7 @@ const audioBook: AudioBook = {
       {authorsLabel && <p class="text-sm text-gray-700 mt-1">{authorsLabel}</p>}
     </div>
   </a>
-  <div class="absolute bottom-14 right-3 opacity-0 group-hover:opacity-100 transition">
-    <PlayButton client:visible book={audioBook} className="w-10 h-10 shadow" />
+  <div class="absolute top-2 left-2">
+    <PlayButton client:visible book={audioBook} className="w-10 h-10 shadow opacity-60 hover:opacity-100" />
   </div>
 </article>
