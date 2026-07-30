@@ -116,15 +116,17 @@ async function main() {
       regions: termMap(post, "region"),
       licences: termMap(post, "licence"),
       tags: termMap(post, "post_tag"),
-      tracks: tracks.map((m, i) => ({
-        id: m.id,
-        slug: normalizeSlug(m.slug),
-        title: decodeHtml(m.title.rendered),
-        order: m.media_details?.menu_order ?? i,
-        url: m.source_url,
-        duration: m.media_details?.length ?? 0,
-        size: m.media_details?.filesize ?? 0,
-      })),
+      tracks: tracks
+        .map((m, i) => ({
+          id: m.id,
+          slug: normalizeSlug(m.slug),
+          title: decodeHtml(m.title.rendered),
+          order: m.media_details?.menu_order ?? i,
+          url: m.source_url || m.meta?.download_url || "",
+          duration: m.media_details?.length ?? msToSec(m.meta?.duration),
+          size: m.media_details?.filesize ?? 0,
+        }))
+        .filter((t) => t.url && t.url.startsWith("http")),
       views: 0,
       commentCount: 0,
       publishedAt: post.date_gmt,
@@ -177,9 +179,10 @@ async function fetchTracksForPost(post: WpPost): Promise<WpMedia[]> {
           title: { rendered: itemLabel },
           mime_type: "audio/mpeg",
           source_url: "",
+          meta: { duration: 0, download_url: "" },
           media_details: { length: 0, filesize: 0, menu_order: i },
         };
-      });
+      }).filter((m) => (m.source_url || m.meta?.download_url || "").startsWith("http"));
     }
   }
 
