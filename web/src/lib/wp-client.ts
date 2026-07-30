@@ -126,6 +126,27 @@ class WpClient {
     });
     return data as WpMedia[];
   }
+
+  async getStationsByIds(ids: number[]): Promise<WpStation[]> {
+    if (!ids.length) return [];
+    const { data } = await this.req("/wp-json/wp/v2/station", {
+      include: ids.join(","),
+      perPage: 100,
+      _fields: "id,slug,title,meta",
+    });
+    return data as WpStation[];
+  }
+}
+
+export interface WpStation {
+  id: number;
+  slug: string;
+  title: { rendered: string };
+  meta?: {
+    duration?: number;
+    stream?: string;
+    download_url?: string;
+  };
 }
 
 export const wpClient = new WpClient(env.wpApiBase);

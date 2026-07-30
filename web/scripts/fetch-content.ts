@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { wpClient, type WpPost, type WpMedia } from "../src/lib/wp-client";
+import { wpClient, type WpPost, type WpMedia, type WpStation } from "../src/lib/wp-client";
 import { fetchTaxonomies } from "../src/lib/fetch-taxonomies";
 import { normalizeSlug } from "../src/lib/slug-normalize";
 
@@ -168,20 +168,22 @@ async function fetchTracksForPost(post: WpPost): Promise<WpMedia[]> {
   if (items && items.length > 0) {
     const ids = items.map(parseItemId).filter((id): id is number => id !== undefined && !Number.isNaN(id));
     if (ids.length) {
-      const media = await wpClient.getMediaByIds(ids);
-      const byId = new Map(media.map((m) => [m.id, m]));
+      const stations = await wpClient.getStationsByIds(ids);
+      const byId = new Map(stations.map((s) => [s.id, s]));
       return ids.map((id, i) => {
-        const m = byId.get(id);
+        const s = byId.get(id);
         const itemLabel = items[i]?.replace(/^\s*\d+\s*:\s*/, "") || `Piste ${i + 1}`;
-        return m ?? {
+        const url = s?.meta?.stream || s?.meta?.download_url || "";
+        const duration = msToSec(s?.meta?.duration);
+        return {
           id,
-          slug: normalizeSlug(`${post.slug}-${i + 1}`),
-          title: { rendered: itemLabel },
+          slug: normalizeSlug(s?.slug || `${post.slug}-${i + 1}`),
+          title: { rendered: s?.title?.rendered || itemLabel },
           mime_type: "audio/mpeg",
-          source_url: "",
-          meta: { duration: 0, download_url: "" },
-          media_details: { length: 0, filesize: 0, menu_order: i },
-        };
+          source_url: url,
+          meta: { duration: s?.meta?.duration || 0, download_url: s?.meta?.download_url || "" },
+          media_details: { length: duration, filesize: 0, menu_order: i },
+        } as WpMedia;
       }).filter((m) => (m.source_url || m.meta?.download_url || "").startsWith("http"));
     }
   }
