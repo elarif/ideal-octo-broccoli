@@ -13,7 +13,9 @@ export function PlayButton({ book, trackIndex = 0, className = "", label }: Prop
   const { currentBook, currentTrackIndex, isPlaying, playBook, togglePlay } = useAudio();
   const isThis = currentBook?.slug === book.slug && (trackIndex === undefined || currentBook.tracks[currentTrackIndex]?.id === book.tracks[trackIndex]?.id);
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     if (isThis) togglePlay();
     else playBook(book, trackIndex);
   };
