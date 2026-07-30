@@ -3,9 +3,28 @@ import type { AudioActions, AudioContextValue, AudioState, AudioTrack } from "..
 
 const AudioContext = createContext<AudioContextValue | null>(null);
 
+const SSR_DEFAULT: AudioContextValue = {
+  isPlaying: false,
+  currentBook: null,
+  currentTrackIndex: 0,
+  currentTime: 0,
+  duration: 0,
+  volume: 1,
+  playBook: () => {},
+  togglePlay: () => {},
+  playNext: () => {},
+  playPrevious: () => {},
+  seek: () => {},
+  setVolume: () => {},
+  close: () => {},
+};
+
 export function useAudio(): AudioContextValue {
   const ctx = useContext(AudioContext);
-  if (!ctx) throw new Error("useAudio must be used inside AudioProvider");
+  if (!ctx) {
+    if (typeof window === "undefined") return SSR_DEFAULT;
+    throw new Error("useAudio must be used inside AudioProvider");
+  }
   return ctx;
 }
 
