@@ -1,18 +1,22 @@
+// This module must only be used inside client React islands.
+// It relies on window.__AUDIO_STORE__ and HTMLAudioElement.
 import { useEffect, useState } from "react";
-import type { AudioActions, AudioBook, AudioState, AudioTrack } from "../../types/audio";
+import type { AudioActions, AudioBook, AudioState } from "../../types/audio";
 
 interface AudioStore extends AudioState, AudioActions {}
 
+interface InternalAudioStore extends AudioStore {
+  _state: AudioState;
+  _listeners: Set<() => void>;
+  _audioEl: HTMLAudioElement | null;
+  _version: number;
+  _emit: () => void;
+  _ensureAudio: (url: string) => HTMLAudioElement;
+}
+
 declare global {
   interface Window {
-    __AUDIO_STORE__?: AudioStore & {
-      _state: AudioState;
-      _listeners: Set<() => void>;
-      _audioEl: HTMLAudioElement | null;
-      _version: number;
-      _emit: () => void;
-      _ensureAudio: (url: string) => HTMLAudioElement;
-    };
+    __AUDIO_STORE__?: InternalAudioStore;
   }
 }
 
@@ -25,22 +29,8 @@ const initialState: AudioState = {
   volume: 1,
 };
 
-function createStore(): AudioStore & {
-  _state: AudioState;
-  _listeners: Set<() => void>;
-  _audioEl: HTMLAudioElement | null;
-  _version: number;
-  _emit: () => void;
-  _ensureAudio: (url: string) => HTMLAudioElement;
-} {
-  const self: AudioStore & {
-    _state: AudioState;
-    _listeners: Set<() => void>;
-    _audioEl: HTMLAudioElement | null;
-    _version: number;
-    _emit: () => void;
-    _ensureAudio: (url: string) => HTMLAudioElement;
-  } = {
+function createStore(): InternalAudioStore {
+  const self: InternalAudioStore = {
     ...initialState,
     _state: initialState,
     _listeners: new Set(),
@@ -173,7 +163,7 @@ function createStore(): AudioStore & {
   return self;
 }
 
-function getStore() {
+function getStore(): InternalAudioStore {
   if (typeof window !== "undefined") {
     if (!window.__AUDIO_STORE__) {
       window.__AUDIO_STORE__ = createStore();
