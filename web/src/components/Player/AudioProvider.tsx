@@ -1,7 +1,18 @@
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import type { AudioActions, AudioBook, AudioState, AudioTrack } from "../../types/audio";
 
 interface AudioStore extends AudioState, AudioActions {}
+
+declare global {
+  interface Window {
+    __AUDIO_STORE__?: AudioStore & {
+      _state: AudioState;
+      _listeners: Set<() => void>;
+      _audioEl: HTMLAudioElement | null;
+      _version: number;
+    };
+  }
+}
 
 const initialState: AudioState = {
   isPlaying: false,
@@ -12,122 +23,165 @@ const initialState: AudioState = {
   volume: 1,
 };
 
-let state: AudioState = initialState;
-const listeners = new Set<() => void>();
-let audioEl: HTMLAudioElement | null = null;
+function createStore(): AudioStore {
+  const self: AudioStore & {
+    _state: AudioState;
+    _listeners: Set<() => void>;
+    _audioEl: HTMLAudioElement | null;
+    _version: number;
+  } = {
+    ...initialState,
+    _state: initialState,
+    _listeners: new Set(),
+    _audioEl: null,
+    _version: 0,
 
-function emit() {
-  for (const l of listeners) l();
+    playBook(book: AudioBook, trackIndex = 0) {
+      const idx = Math.max(0, Math.min(trackIndex, book.tracks.length - 1));
+      const track = book.tracks[idx];
+      if (!track) return;
+      self._state = {
+        isPlaying: true,
+        currentBook: book,
+        currentTrackIndex: idx,
+        currentTime: 0,
+        duration: 0,
+        volume: self._state.volume,
+      };
+      self._emit();
+      const audio = self._ensureAudio(track.url);
+      audio.volume = self._state.volume;
+      audio.currentTime = 0;
+      audio.play().catch(() => {
+        self._state = { ...self._state, isPlaying: false };
+        self._emit();
+      });
+    },
+
+    togglePlay() {
+      const audio = self._audioEl;
+      if (!audio) return;
+      if (audio.paused) audio.play().catch(() => {});
+      else audio.pause();
+    },
+
+    playNext() {
+      const book = self._state.currentBook;
+      if (!book) return;
+      const next = self._state.currentTrackIndex + 1;
+      if (next < book.tracks.length) {
+        const track = book.tracks[next];
+        self._state = { ...self._state, currentTrackIndex: next, currentTime: 0, duration: 0, isPlaying: true };
+        self._emit();
+        const audio = self._ensureAudio(track.url);
+        audio.volume = self._state.volume;
+        audio.play().catch(() => {
+          self._state = { ...self._state, isPlaying: false };
+          self._emit();
+        });
+      } else {
+        self._state = { ...self._state, isPlaying: false };
+        self._emit();
+      }
+    },
+
+    playPrevious() {
+      const book = self._state.currentBook;
+      if (!book) return;
+      const prev = Math.max(0, self._state.currentTrackIndex - 1);
+      const track = book.tracks[prev];
+      self._state = { ...self._state, currentTrackIndex: prev, currentTime: 0, duration: 0, isPlaying: true };
+      self._emit();
+      const audio = self._ensureAudio(track.url);
+      audio.volume = self._state.volume;
+      audio.play().catch(() => {
+        self._state = { ...self._state, isPlaying: false };
+        self._emit();
+      });
+    },
+
+    seek(time: number) {
+      if (self._audioEl) self._audioEl.currentTime = time;
+      self._state = { ...self._state, currentTime: time };
+      self._emit();
+    },
+
+    setVolume(v: number) {
+      const vol = Math.max(0, Math.min(1, v));
+      if (self._audioEl) self._audioEl.volume = vol;
+      self._state = { ...self._state, volume: vol };
+      self._emit();
+    },
+
+    close() {
+      self._audioEl?.pause();
+      self._audioEl = null;
+      self._state = { ...initialState, volume: self._state.volume };
+      self._emit();
+    },
+
+    _emit() {
+      self._version += 1;
+      for (const l of self._listeners) l();
+    },
+
+    _ensureAudio(url: string) {
+      const currentUrl = self._audioEl?.src || null;
+      if (currentUrl === url && self._audioEl) return self._audioEl;
+      if (self._audioEl) {
+        self._audioEl.pause();
+        self._audioEl.src = "";
+        self._audioEl = null;
+      }
+      const audio = new Audio(url);
+      audio.preload = "auto";
+      self._audioEl = audio;
+
+      audio.addEventListener("timeupdate", () => {
+        self._state = { ...self._state, currentTime: audio.currentTime };
+        self._emit();
+      });
+      audio.addEventListener("loadedmetadata", () => {
+        self._state = { ...self._state, duration: audio.duration || 0 };
+        self._emit();
+      });
+      audio.addEventListener("ended", () => self.playNext());
+      audio.addEventListener("play", () => {
+        self._state = { ...self._state, isPlaying: true };
+        self._emit();
+      });
+      audio.addEventListener("pause", () => {
+        self._state = { ...self._state, isPlaying: false };
+        self._emit();
+      });
+
+      return audio;
+    },
+  };
+
+  return self;
 }
 
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => { listeners.delete(listener); };
-}
-
-function getSnapshot() {
-  return state;
-}
-
-function setState(updater: (prev: AudioState) => AudioState) {
-  state = updater(state);
-  emit();
-}
-
-let currentTrackUrl: string | null = null;
-
-function ensureAudio(url: string) {
-  if (currentTrackUrl === url && audioEl) return audioEl;
-  if (audioEl) {
-    audioEl.pause();
-    audioEl.src = "";
-    audioEl = null;
-  }
-  const audio = new Audio(url);
-  audio.preload = "auto";
-  audioEl = audio;
-  currentTrackUrl = url;
-
-  audio.addEventListener("timeupdate", () => setState((p) => ({ ...p, currentTime: audio.currentTime })));
-  audio.addEventListener("loadedmetadata", () => setState((p) => ({ ...p, duration: audio.duration || 0 })));
-  audio.addEventListener("ended", () => store.playNext());
-  audio.addEventListener("play", () => setState((p) => ({ ...p, isPlaying: true })));
-  audio.addEventListener("pause", () => setState((p) => ({ ...p, isPlaying: false })));
-
-  return audio;
-}
-
-export const store: AudioStore = {
-  ...initialState,
-
-  playBook(book: AudioBook, trackIndex = 0) {
-    const idx = Math.max(0, Math.min(trackIndex, book.tracks.length - 1));
-    const track = book.tracks[idx];
-    if (!track) return;
-    setState(() => ({
-      isPlaying: true,
-      currentBook: book,
-      currentTrackIndex: idx,
-      currentTime: 0,
-      duration: 0,
-      volume: state.volume,
-    }));
-    const audio = ensureAudio(track.url);
-    audio.volume = state.volume;
-    audio.currentTime = 0;
-    audio.play().catch(() => setState((p) => ({ ...p, isPlaying: false })));
-  },
-
-  togglePlay() {
-    if (!audioEl) return;
-    if (audioEl.paused) audioEl.play().catch(() => {});
-    else audioEl.pause();
-  },
-
-  playNext() {
-    if (!state.currentBook) return;
-    const next = state.currentTrackIndex + 1;
-    if (next < state.currentBook.tracks.length) {
-      const track = state.currentBook.tracks[next];
-      setState((p) => ({ ...p, currentTrackIndex: next, currentTime: 0, duration: 0, isPlaying: true }));
-      const audio = ensureAudio(track.url);
-      audio.volume = state.volume;
-      audio.play().catch(() => setState((p) => ({ ...p, isPlaying: false })));
-    } else {
-      setState((p) => ({ ...p, isPlaying: false }));
+function getStore() {
+  if (typeof window !== "undefined") {
+    if (!window.__AUDIO_STORE__) {
+      window.__AUDIO_STORE__ = createStore();
     }
-  },
+    return window.__AUDIO_STORE__;
+  }
+  return createStore();
+}
 
-  playPrevious() {
-    if (!state.currentBook) return;
-    const prev = Math.max(0, state.currentTrackIndex - 1);
-    const track = state.currentBook.tracks[prev];
-    setState((p) => ({ ...p, currentTrackIndex: prev, currentTime: 0, duration: 0, isPlaying: true }));
-    const audio = ensureAudio(track.url);
-    audio.volume = state.volume;
-    audio.play().catch(() => setState((p) => ({ ...p, isPlaying: false })));
-  },
-
-  seek(time: number) {
-    if (audioEl) audioEl.currentTime = time;
-    setState((p) => ({ ...p, currentTime: time }));
-  },
-
-  setVolume(v: number) {
-    const vol = Math.max(0, Math.min(1, v));
-    if (audioEl) audioEl.volume = vol;
-    setState((p) => ({ ...p, volume: vol }));
-  },
-
-  close() {
-    audioEl?.pause();
-    audioEl = null;
-    currentTrackUrl = null;
-    setState(() => ({ ...initialState, volume: state.volume }));
-  },
-};
+export const store = getStore();
 
 export function useAudio(): AudioStore {
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  return { ...snapshot, ...store };
+  const [, forceRender] = useState({});
+
+  useEffect(() => {
+    const listener = () => forceRender({});
+    store._listeners.add(listener);
+    return () => store._listeners.delete(listener);
+  }, []);
+
+  return { ...store, ...store._state };
 }

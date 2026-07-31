@@ -5,7 +5,7 @@ import { formatMediaTime } from "../../lib/format-media-time";
 export function GlobalPlayer() {
   const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, togglePlay, playNext, playPrevious, seek, setVolume, close } = useAudio();
 
-  if (!currentBook) return <div className="hidden" aria-hidden="true" />;
+  if (!currentBook) return <div className="global-player-placeholder hidden" aria-hidden="true" />;
 
   const track = currentBook.tracks[currentTrackIndex];
 

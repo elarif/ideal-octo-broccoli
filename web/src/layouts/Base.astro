@@ -55,7 +55,7 @@ const imageUrl = image ? new URL(image, siteUrl).toString() : undefined;
       </div>
     </div>
     <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-40 md:hidden hidden"></div>
-    <GlobalPlayer client:load />
+    <GlobalPlayer client:only="react" />
 
     <script is:inline>
       function toggleSidebar() {
