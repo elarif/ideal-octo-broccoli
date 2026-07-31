@@ -4,7 +4,8 @@ import Base from "../../layouts/Base.astro";
 import { TrackList } from "../../components/Player/TrackList";
 import { formatDuration } from "../../lib/format-duration";
 import { formatViews } from "../../lib/format-views";
-import type { AudioBook } from "../../types/audio";
+import { pageUrl } from "../../lib/urls";
+import { toAudioBook } from "../../lib/audio-book";
 
 export async function getStaticPaths() {
   const books = await getCollection("books");
@@ -23,19 +24,7 @@ const periodsLabel = d.periods.map((p) => p.name).join(", ");
 const regionsLabel = d.regions.map((r) => r.name).join(", ");
 const licencesLabel = d.licences.map((l) => l.name).join(", ");
 
-const audioBook: AudioBook = {
-  slug: d.slug,
-  title: d.title,
-  authorsLabel,
-  coverUrl: d.cover?.url,
-  tracks: d.tracks.map((t) => ({
-    id: t.id,
-    slug: t.slug,
-    title: t.title,
-    url: t.url,
-    duration: t.duration,
-  })),
-};
+const audioBook = toAudioBook(book);
 
 const voiceSlugs = d.voices.map((v) => v.slug);
 const sameVoiceBooks = allBooks
@@ -76,14 +65,14 @@ const topBooks = allBooks
         {authorsLabel && (
           <p class="mb-1">
             De {d.authors.map((a, i) => (
-              <Fragment><a href={`/livre-audio-gratuit-mp3/auteur/${a.slug}.html`} class="text-primary hover:underline">{a.name}</a>{i < d.authors.length - 1 ? ", " : ""}</Fragment>
+              <Fragment><a href={pageUrl(`/livre-audio-gratuit-mp3/auteur/${a.slug}`)} class="text-primary hover:underline">{a.name}</a>{i < d.authors.length - 1 ? ", " : ""}</Fragment>
             ))}
           </p>
         )}
         {voicesLabel && (
           <p class="mb-1">
             Lu par {d.voices.map((v, i) => (
-              <Fragment><a href={`/livre-audio-gratuit-mp3/voix/${v.slug}.html`} class="text-primary hover:underline">{v.name}</a>{i < d.voices.length - 1 ? ", " : ""}</Fragment>
+              <Fragment><a href={pageUrl(`/livre-audio-gratuit-mp3/voix/${v.slug}`)} class="text-primary hover:underline">{v.name}</a>{i < d.voices.length - 1 ? ", " : ""}</Fragment>
             ))}
           </p>
         )}
@@ -94,7 +83,7 @@ const topBooks = allBooks
         {genresLabel && (
           <p class="mb-1">
             Genre : {d.genres.map((g, i) => (
-              <Fragment><a href={`/livre-audio-gratuit-mp3/genre/${g.slug}.html`} class="text-primary hover:underline">{g.name}</a>{i < d.genres.length - 1 ? ", " : ""}</Fragment>
+              <Fragment><a href={pageUrl(`/livre-audio-gratuit-mp3/genre/${g.slug}`)} class="text-primary hover:underline">{g.name}</a>{i < d.genres.length - 1 ? ", " : ""}</Fragment>
             ))}
           </p>
         )}
@@ -124,7 +113,7 @@ const topBooks = allBooks
         <h2 class="text-2xl font-bold mb-4">Lu par {voicesLabel}</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           {sameVoiceBooks.map((b) => (
-            <a href={`/livre-audio-gratuit-mp3/${b.data.slug}.html`} class="flex gap-3 p-2 border rounded hover:shadow transition">
+            <a href={pageUrl(`/livre-audio-gratuit-mp3/${b.data.slug}`)} class="flex gap-3 p-2 border rounded hover:shadow transition">
               {b.data.cover && (
                 <img src={b.data.cover.url} alt={b.data.cover.alt || b.data.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
               )}
@@ -144,7 +133,7 @@ const topBooks = allBooks
         <h2 class="text-2xl font-bold mb-4">Les plus aimés ❤️</h2>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
           {topBooks.map((b) => (
-            <a href={`/livre-audio-gratuit-mp3/${b.data.slug}.html`} class="flex gap-3 p-2 border rounded hover:shadow transition">
+            <a href={pageUrl(`/livre-audio-gratuit-mp3/${b.data.slug}`)} class="flex gap-3 p-2 border rounded hover:shadow transition">
               {b.data.cover && (
                 <img src={b.data.cover.url} alt={b.data.cover.alt || b.data.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
               )}

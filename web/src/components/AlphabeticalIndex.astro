@@ -1,4 +1,6 @@
 ---
+import { pageUrl } from "../lib/urls";
+
 interface Item {
   slug: string;
   name: string;
@@ -32,7 +34,7 @@ const sortedLetters = [...groups.keys()].sort();
       <ul class="grid grid-cols-2 md:grid-cols-3 gap-2">
         {groups.get(letter)!.map((item) => (
           <li>
-            <a href={`${baseUrl}/${item.slug}.html`} class="text-primary hover:underline">{item.name}</a>
+            <a href={pageUrl(`${baseUrl}/${item.slug}`)} class="text-primary hover:underline">{item.name}</a>
             <span class="text-sm text-gray-600"> ({item.count})</span>
           </li>
         ))}

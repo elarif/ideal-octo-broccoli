@@ -1,6 +1,7 @@
 ---
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
+import { pageUrl } from "../lib/urls";
 
 const genres = await getCollection("genres");
 genres.sort((a, b) => b.data.count - a.data.count);
@@ -14,7 +15,7 @@ genres.sort((a, b) => b.data.count - a.data.count);
   <ul class="grid grid-cols-2 md:grid-cols-4 gap-4">
     {genres.map((genre) => (
       <li>
-        <a href={`/livre-audio-gratuit-mp3/genre/${genre.data.slug}.html`} class="block p-4 border rounded hover:shadow transition">
+        <a href={pageUrl(`/livre-audio-gratuit-mp3/genre/${genre.data.slug}`)} class="block p-4 border rounded hover:shadow transition">
           <span class="font-medium">{genre.data.name}</span>
           <span class="text-sm text-gray-600 block">{genre.data.count} livre{genre.data.count > 1 ? "s" : ""}</span>
         </a>

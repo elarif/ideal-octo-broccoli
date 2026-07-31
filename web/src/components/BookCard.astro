@@ -3,7 +3,8 @@ import type { CollectionEntry } from "astro:content";
 import { formatDuration } from "../lib/format-duration";
 import { formatViews } from "../lib/format-views";
 import { PlayButton } from "./Player/PlayButton";
-import type { AudioBook } from "../types/audio";
+import { pageUrl } from "../lib/urls";
+import { toAudioBook } from "../lib/audio-book";
 
 interface Props {
   book: CollectionEntry<"books">;
@@ -13,23 +14,11 @@ const { book } = Astro.props;
 const d = book.data;
 const authorsLabel = d.authors.map((a) => a.name).join(", ");
 
-const audioBook: AudioBook = {
-  slug: d.slug,
-  title: d.title,
-  authorsLabel,
-  coverUrl: d.cover?.url,
-  tracks: d.tracks.map((t) => ({
-    id: t.id,
-    slug: t.slug,
-    title: t.title,
-    url: t.url,
-    duration: t.duration,
-  })),
-};
+const audioBook = toAudioBook(book);
 ---
 
 <article class="border rounded overflow-hidden hover:shadow transition group relative">
-  <a href={`/livre-audio-gratuit-mp3/${d.slug}.html`} class="block">
+  <a href={pageUrl(`/livre-audio-gratuit-mp3/${d.slug}`)} class="block">
     <figure class="relative aspect-[3/4] overflow-hidden bg-gray-100">
       {d.cover && (
         <img
