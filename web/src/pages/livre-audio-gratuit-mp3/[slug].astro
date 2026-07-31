@@ -6,6 +6,8 @@ import { formatDuration } from "../../lib/format-duration";
 import { formatViews } from "../../lib/format-views";
 import { pageUrl } from "../../lib/urls";
 import { toAudioBook } from "../../lib/audio-book";
+import Section from "../../components/ui/Section.astro";
+import CompactBookCard from "../../components/CompactBookCard.astro";
 
 export async function getStaticPaths() {
   const books = await getCollection("books");
@@ -95,57 +97,31 @@ const topBooks = allBooks
     </header>
 
     {d.tracks.length > 0 && (
-      <section class="mb-8">
-        <h2 class="text-2xl font-bold mb-4">Écouter / Télécharger</h2>
+      <Section title="Écouter / Télécharger">
         <TrackList client:load book={audioBook} />
-      </section>
+      </Section>
     )}
 
     {d.content && (
-      <section class="mb-8">
-        <h2 class="text-2xl font-bold mb-4">Description</h2>
+      <Section title="Description">
         <div class="prose max-w-none" set:html={d.content} />
-      </section>
+      </Section>
     )}
 
     {sameVoiceBooks.length > 0 && voicesLabel && (
-      <section class="mb-8">
-        <h2 class="text-2xl font-bold mb-4">Lu par {voicesLabel}</h2>
+      <Section title={`Lu par ${voicesLabel}`}>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {sameVoiceBooks.map((b) => (
-            <a href={pageUrl(`/livre-audio-gratuit-mp3/${b.data.slug}`)} class="flex gap-3 p-2 border rounded hover:shadow transition">
-              {b.data.cover && (
-                <img src={b.data.cover.url} alt={b.data.cover.alt || b.data.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
-              )}
-              <div class="min-w-0">
-                <h3 class="font-semibold text-sm leading-tight truncate">{b.data.title}</h3>
-                <p class="text-xs text-gray-600 mt-1">{formatDuration(b.data.durationTotal)}</p>
-                {b.data.views > 0 && <p class="text-xs text-gray-500">{formatViews(b.data.views)} écoutes</p>}
-              </div>
-            </a>
-          ))}
+          {sameVoiceBooks.map((b) => <CompactBookCard book={b} />)}
         </div>
-      </section>
+      </Section>
     )}
 
     {topBooks.length > 0 && (
-      <section class="mb-8">
-        <h2 class="text-2xl font-bold mb-4">Les plus aimés ❤️</h2>
+      <Section title="Les plus aimés ❤️">
         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {topBooks.map((b) => (
-            <a href={pageUrl(`/livre-audio-gratuit-mp3/${b.data.slug}`)} class="flex gap-3 p-2 border rounded hover:shadow transition">
-              {b.data.cover && (
-                <img src={b.data.cover.url} alt={b.data.cover.alt || b.data.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
-              )}
-              <div class="min-w-0">
-                <h3 class="font-semibold text-sm leading-tight truncate">{b.data.title}</h3>
-                <p class="text-xs text-gray-600 mt-1">{formatDuration(b.data.durationTotal)}</p>
-                {b.data.views > 0 && <p class="text-xs text-gray-500">{formatViews(b.data.views)} écoutes</p>}
-              </div>
-            </a>
-          ))}
+          {topBooks.map((b) => <CompactBookCard book={b} />)}
         </div>
-      </section>
+      </Section>
     )}
   </article>
 </Base>
