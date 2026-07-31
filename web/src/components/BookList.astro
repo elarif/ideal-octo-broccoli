@@ -2,6 +2,8 @@
 import type { CollectionEntry } from "astro:content";
 import BookCard from "./BookCard.astro";
 import Pagination from "./Pagination.astro";
+import Section from "./ui/Section.astro";
+import BookGrid from "./ui/BookGrid.astro";
 
 interface Props {
   books: CollectionEntry<"books">[];
@@ -17,10 +19,9 @@ const start = (currentPage - 1) * pageSize;
 const pageBooks = books.slice(start, start + pageSize);
 ---
 
-<section>
-  <h1 class="text-2xl font-bold mb-4">{title}</h1>
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<Section title={title}>
+  <BookGrid>
     {pageBooks.map((book) => <BookCard book={book} />)}
-  </div>
+  </BookGrid>
   {totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} baseUrl={baseUrl} />}
-</section>
+</Section>

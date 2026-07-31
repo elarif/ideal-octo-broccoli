@@ -4,6 +4,8 @@ import Base from "../layouts/Base.astro";
 import BookCard from "../components/BookCard.astro";
 import Newsletter from "../components/Newsletter.tsx";
 import LatestCommentsPlaceholder from "../components/LatestCommentsPlaceholder.astro";
+import Section from "../components/ui/Section.astro";
+import BookGrid from "../components/ui/BookGrid.astro";
 
 const allBooks = await getCollection("books");
 const bySlug = new Map(allBooks.map((b) => [b.data.slug, b]));
@@ -28,43 +30,25 @@ const choixClaryssandre = choixClaryssandreSlugs
   title={`Plus de ${allBooks.length} livres audio gratuits ! | Litteratureaudio.com`}
   description={`La référence du livre audio gratuit francophone : plus de ${allBooks.length} livres audio à écouter et télécharger gratuitement au format MP3 !`}
 >
-  <section class="mb-10">
-    <div class="flex items-baseline justify-between mb-4">
-      <h2 class="text-2xl font-bold">Nouveautés</h2>
-      <a
-        href="/nos-derniers-livres-audio-gratuits.html"
-        class="inline-flex items-center gap-1 text-sm font-semibold text-[#2c4cb8] hover:text-[#1a3070] hover:underline"
-      >
-        Voir toutes les nouveautés
-        <span aria-hidden="true">→</span>
-      </a>
-    </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {nouveautes.map((book) => (
-        <BookCard book={book} />
-      ))}
-    </div>
-  </section>
+  <Section title="Nouveautés" action={{ href: "/nos-derniers-livres-audio-gratuits", label: "Voir toutes les nouveautés" }}>
+    <BookGrid>
+      {nouveautes.map((book) => <BookCard book={book} />)}
+    </BookGrid>
+  </Section>
 
   {choixClaryssandre.length > 0 && (
-    <section class="mb-10">
-      <h2 class="text-2xl font-bold mb-4">Le Choix de Claryssandre</h2>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {choixClaryssandre.map((book) => (
-          <BookCard book={book} />
-        ))}
-      </div>
-    </section>
+    <Section title="Le Choix de Claryssandre">
+      <BookGrid>
+        {choixClaryssandre.map((book) => <BookCard book={book} />)}
+      </BookGrid>
+    </Section>
   )}
 
-  <section class="mb-10">
-    <h2 class="text-2xl font-bold mb-4">Les plus aimés</h2>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      {populaires.map((book) => (
-        <BookCard book={book} />
-      ))}
-    </div>
-  </section>
+  <Section title="Les plus écoutés">
+    <BookGrid>
+      {populaires.map((book) => <BookCard book={book} />)}
+    </BookGrid>
+  </Section>
 
   <section class="mb-10">
     <Newsletter client:visible />
