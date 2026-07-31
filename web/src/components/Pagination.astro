@@ -1,4 +1,6 @@
 ---
+import { pageUrl } from "../lib/urls";
+
 interface Props {
   currentPage: number;
   totalPages: number;
@@ -8,14 +10,15 @@ interface Props {
 const { currentPage, totalPages, baseUrl } = Astro.props;
 const hasPrev = currentPage > 1;
 const hasNext = currentPage < totalPages;
+const pageHref = (n: number) => pageUrl(n === 1 ? baseUrl : `${baseUrl}/page/${n}`);
 ---
 
 <nav aria-label="Pagination" class="flex justify-center gap-2 mt-8">
   {hasPrev && (
-    <a href={`${baseUrl}?page=${currentPage - 1}`} class="px-3 py-1 border rounded hover:bg-gray-100">← Précédent</a>
+    <a href={pageHref(currentPage - 1)} class="px-3 py-1 border rounded hover:bg-gray-100">← Précédent</a>
   )}
   <span class="px-3 py-1">Page {currentPage} / {totalPages}</span>
   {hasNext && (
-    <a href={`${baseUrl}?page=${currentPage + 1}`} class="px-3 py-1 border rounded hover:bg-gray-100">Suivant →</a>
+    <a href={pageHref(currentPage + 1)} class="px-3 py-1 border rounded hover:bg-gray-100">Suivant →</a>
   )}
 </nav>

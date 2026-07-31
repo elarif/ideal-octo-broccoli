@@ -1,0 +1,25 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../layouts/Base.astro";
+import BookList from "../../components/BookList.astro";
+
+export async function getStaticPaths() {
+  const allBooks = await getCollection("books");
+  const books = [...allBooks].sort((a, b) => b.data.views - a.data.views);
+  const pageSize = 24;
+  const totalPages = Math.max(1, Math.ceil(books.length / pageSize));
+  return Array.from({ length: totalPages }, (_, i) => ({
+    params: { page: String(i + 1) },
+    props: { books, currentPage: i + 1, totalPages, pageSize },
+  }));
+}
+
+const { books, currentPage, pageSize } = Astro.props;
+---
+
+<Base
+  title={`Les livres audio les plus écoutés - Page ${currentPage} | Litteratureaudio.com`}
+  description="Classement des livres audio gratuits les plus écoutés sur Litteratureaudio.com."
+>
+  <BookList books={books} title="Les plus écoutés" currentPage={currentPage} pageSize={pageSize} baseUrl="/classement-de-nos-livres-audio-gratuits-les-plus-apprecies" />
+</Base>

@@ -1,34 +1,10 @@
 ---
 import { getCollection } from "astro:content";
-import Base from "../../../layouts/Base.astro";
-import BookList from "../../../components/BookList.astro";
 
 export async function getStaticPaths() {
   const genres = await getCollection("genres");
   return genres.map((genre) => ({ params: { slug: genre.data.slug } }));
 }
 
-const { slug } = Astro.params;
-const genre = await getCollection("genres").then((all) => all.find((g) => g.data.slug === slug));
-if (!genre) throw new Error(`Genre not found: ${slug}`);
-
-const allBooks = await getCollection("books");
-const books = allBooks.filter((b) => b.data.genres.some((g) => g.slug === slug));
-books.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
-
-const pageParam = Astro.url.searchParams.get("page");
-const currentPage = Math.max(1, Number(pageParam) || 1);
+return Astro.redirect(`/livre-audio-gratuit-mp3/genre/${Astro.params.slug}/page/1.html`);
 ---
-
-<Base
-  title={`Livres audio ${genre.data.name} | Litteratureaudio.com`}
-  description={`Écoutez et téléchargez gratuitement les livres audio ${genre.data.name}.`}
->
-  <BookList
-    books={books}
-    title={`Livres audio ${genre.data.name}`}
-    currentPage={currentPage}
-    pageSize={24}
-    baseUrl={`/livre-audio-gratuit-mp3/genre/${slug}.html`}
-  />
-</Base>

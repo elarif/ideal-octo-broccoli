@@ -1,0 +1,40 @@
+---
+import { getCollection } from "astro:content";
+import Base from "../../../../layouts/Base.astro";
+import BookList from "../../../../components/BookList.astro";
+
+export async function getStaticPaths() {
+  const [allGenres, allBooks] = await Promise.all([getCollection("genres"), getCollection("books")]);
+  const pageSize = 24;
+  const paths: { params: { slug: string; page: string }; props: { books: typeof allBooks; currentPage: number; totalPages: number; pageSize: number; genreName: string } }[] = [];
+
+  for (const genre of allGenres) {
+    const books = allBooks.filter((b) => b.data.genres.some((g) => g.slug === genre.data.slug));
+    books.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
+    const totalPages = Math.max(1, Math.ceil(books.length / pageSize));
+    for (let i = 0; i < totalPages; i++) {
+      paths.push({
+        params: { slug: genre.data.slug, page: String(i + 1) },
+        props: { books, currentPage: i + 1, totalPages, pageSize, genreName: genre.data.name },
+      });
+    }
+  }
+  return paths;
+}
+
+const { books, currentPage, pageSize, genreName } = Astro.props;
+const title = `Livres audio ${genreName} - Page ${currentPage} | Litteratureaudio.com`;
+---
+
+<Base
+  title={title}
+  description={`Écoutez et téléchargez gratuitement les livres audio ${genreName}.`}
+>
+  <BookList
+    books={books}
+    title={`Livres audio ${genreName}`}
+    currentPage={currentPage}
+    pageSize={pageSize}
+    baseUrl={`/livre-audio-gratuit-mp3/genre/${Astro.params.slug}`}
+  />
+</Base>
