@@ -2,20 +2,42 @@
 import { getCollection } from "astro:content";
 import Base from "../layouts/Base.astro";
 import BookCard from "../components/BookCard.astro";
+import Newsletter from "../components/Newsletter.tsx";
+import LatestCommentsPlaceholder from "../components/LatestCommentsPlaceholder.astro";
 
 const allBooks = await getCollection("books");
+const bySlug = new Map(allBooks.map((b) => [b.data.slug, b]));
 const sortedByDate = [...allBooks].sort(
   (a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime(),
 );
 const nouveautes = sortedByDate.slice(0, 8);
 const populaires = [...allBooks].sort((a, b) => b.data.views - a.data.views).slice(0, 12);
+
+const choixClaryssandreSlugs = [
+  "victor-hugo-ce-quon-entend-sur-la-montagne",
+  "gustave-flaubert-bouvard-et-pecuchet-2",
+  "jules-verne-deux-ans-de-vacances",
+  "alexandre-dumas-la-femme-au-collier-de-velours",
+];
+const choixClaryssandre = choixClaryssandreSlugs
+  .map((slug) => bySlug.get(slug))
+  .filter((b): b is NonNullable<typeof b> => Boolean(b));
 ---
+
 <Base
   title={`Plus de ${allBooks.length} livres audio gratuits ! | Litteratureaudio.com`}
   description={`La référence du livre audio gratuit francophone : plus de ${allBooks.length} livres audio à écouter et télécharger gratuitement au format MP3 !`}
 >
   <section class="mb-10">
-    <h2 class="text-2xl font-bold mb-4">Nouveautés</h2>
+    <div class="flex items-baseline justify-between mb-4">
+      <h2 class="text-2xl font-bold">Nouveautés</h2>
+      <a
+        href="/nos-derniers-livres-audio-gratuits.html"
+        class="text-primary hover:underline text-sm"
+      >
+        Voir toutes les nouveautés →
+      </a>
+    </div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       {nouveautes.map((book) => (
         <BookCard book={book} />
@@ -23,7 +45,18 @@ const populaires = [...allBooks].sort((a, b) => b.data.views - a.data.views).sli
     </div>
   </section>
 
-  <section>
+  {choixClaryssandre.length > 0 && (
+    <section class="mb-10">
+      <h2 class="text-2xl font-bold mb-4">Le Choix de Claryssandre</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {choixClaryssandre.map((book) => (
+          <BookCard book={book} />
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="mb-10">
     <h2 class="text-2xl font-bold mb-4">Les plus aimés</h2>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
       {populaires.map((book) => (
@@ -31,4 +64,10 @@ const populaires = [...allBooks].sort((a, b) => b.data.views - a.data.views).sli
       ))}
     </div>
   </section>
+
+  <section class="mb-10">
+    <Newsletter client:visible />
+  </section>
+
+  <LatestCommentsPlaceholder />
 </Base>
