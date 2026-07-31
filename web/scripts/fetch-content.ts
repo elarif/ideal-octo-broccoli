@@ -127,7 +127,8 @@ async function main() {
           size: m.media_details?.filesize ?? 0,
         }))
         .filter((t) => t.url && t.url.startsWith("http")),
-      views: 0,
+      views: post.meta?.["post-count-all"] ?? 0,
+      likeCount: post.meta?.like_count ?? 0,
       commentCount: 0,
       publishedAt: post.date_gmt,
       modifiedAt: post.modified_gmt,

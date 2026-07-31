@@ -77,6 +77,9 @@ const audioBook: AudioBook = {
           </p>
         )}
         <p class="mb-1">Durée : {formatDuration(d.durationTotal)}</p>
+        <p class="mb-1">Ajouté le : {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }).format(new Date(d.publishedAt))}</p>
+        {d.views > 0 && <p class="mb-1 text-gray-600">{formatViews(d.views)} écoutes</p>}
+        {d.likeCount > 0 && <p class="mb-1 text-gray-600">{d.likeCount} j'aime</p>}
         {genresLabel && (
           <p class="mb-1">
             Genre : {d.genres.map((g, i) => (
@@ -87,7 +90,6 @@ const audioBook: AudioBook = {
         {periodsLabel && <p class="mb-1">Période : {periodsLabel}</p>}
         {regionsLabel && <p class="mb-1">Région : {regionsLabel}</p>}
         {licencesLabel && <p class="mb-1">Licence : {licencesLabel}</p>}
-        {d.views > 0 && <p class="mb-1 text-gray-600">{formatViews(d.views)} écoutes</p>}
         {d.commentCount > 0 && <p class="mb-1 text-gray-600">{d.commentCount} commentaire{d.commentCount > 1 ? "s" : ""}</p>}
       </div>
     </header>

@@ -38,6 +38,7 @@ const books = defineCollection({
     tags: z.array(TermRef),
     tracks: z.array(Track),
     views: z.number().int().nonnegative().default(0),
+    likeCount: z.number().int().nonnegative().default(0),
     commentCount: z.number().int().nonnegative().default(0),
     publishedAt: z.coerce.date(),
     modifiedAt: z.coerce.date(),

@@ -27,6 +27,8 @@ export interface WpPost {
     download_url?: string;
     type?: "single" | "playlist";
     items?: string[];
+    "post-count-all"?: number;
+    like_count?: number;
   };
   _embedded?: {
     "wp:featuredmedia"?: Array<{

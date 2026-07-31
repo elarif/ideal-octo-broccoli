@@ -10,6 +10,8 @@ declare global {
       _listeners: Set<() => void>;
       _audioEl: HTMLAudioElement | null;
       _version: number;
+      _emit: () => void;
+      _ensureAudio: (url: string) => HTMLAudioElement;
     };
   }
 }
@@ -23,12 +25,21 @@ const initialState: AudioState = {
   volume: 1,
 };
 
-function createStore(): AudioStore {
+function createStore(): AudioStore & {
+  _state: AudioState;
+  _listeners: Set<() => void>;
+  _audioEl: HTMLAudioElement | null;
+  _version: number;
+  _emit: () => void;
+  _ensureAudio: (url: string) => HTMLAudioElement;
+} {
   const self: AudioStore & {
     _state: AudioState;
     _listeners: Set<() => void>;
     _audioEl: HTMLAudioElement | null;
     _version: number;
+    _emit: () => void;
+    _ensureAudio: (url: string) => HTMLAudioElement;
   } = {
     ...initialState,
     _state: initialState,
@@ -180,7 +191,7 @@ export function useAudio(): AudioStore {
   useEffect(() => {
     const listener = () => forceRender({});
     store._listeners.add(listener);
-    return () => store._listeners.delete(listener);
+    return () => { store._listeners.delete(listener); };
   }, []);
 
   return { ...store, ...store._state };
