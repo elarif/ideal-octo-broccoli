@@ -10,11 +10,11 @@ export async function getStaticPaths() {
   const books = await getCollection("books");
   return books.map((book) => ({
     params: { slug: book.data.slug },
-    props: { book },
+    props: { book, allBooks: books },
   }));
 }
 
-const { book } = Astro.props;
+const { book, allBooks } = Astro.props;
 const d = book.data;
 const authorsLabel = d.authors.map((a) => a.name).join(", ");
 const voicesLabel = d.voices.map((v) => v.name).join(", ");
@@ -36,6 +36,17 @@ const audioBook: AudioBook = {
     duration: t.duration,
   })),
 };
+
+const voiceSlugs = d.voices.map((v) => v.slug);
+const sameVoiceBooks = allBooks
+  .filter((b) => b.data.slug !== d.slug && b.data.voices.some((v) => voiceSlugs.includes(v.slug)))
+  .sort((a, b) => b.data.views - a.data.views)
+  .slice(0, 6);
+
+const topBooks = allBooks
+  .filter((b) => b.data.slug !== d.slug)
+  .sort((a, b) => b.data.views - a.data.views)
+  .slice(0, 6);
 ---
 
 <Base
@@ -105,6 +116,46 @@ const audioBook: AudioBook = {
       <section class="mb-8">
         <h2 class="text-2xl font-bold mb-4">Description</h2>
         <div class="prose max-w-none" set:html={d.content} />
+      </section>
+    )}
+
+    {sameVoiceBooks.length > 0 && voicesLabel && (
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Lu par {voicesLabel}</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {sameVoiceBooks.map((b) => (
+            <a href={`/livre-audio-gratuit-mp3/${b.data.slug}.html`} class="flex gap-3 p-2 border rounded hover:shadow transition">
+              {b.data.cover && (
+                <img src={b.data.cover.url} alt={b.data.cover.alt || b.data.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
+              )}
+              <div class="min-w-0">
+                <h3 class="font-semibold text-sm leading-tight truncate">{b.data.title}</h3>
+                <p class="text-xs text-gray-600 mt-1">{formatDuration(b.data.durationTotal)}</p>
+                {b.data.views > 0 && <p class="text-xs text-gray-500">{formatViews(b.data.views)} écoutes</p>}
+              </div>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+
+    {topBooks.length > 0 && (
+      <section class="mb-8">
+        <h2 class="text-2xl font-bold mb-4">Les plus aimés ❤️</h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {topBooks.map((b) => (
+            <a href={`/livre-audio-gratuit-mp3/${b.data.slug}.html`} class="flex gap-3 p-2 border rounded hover:shadow transition">
+              {b.data.cover && (
+                <img src={b.data.cover.url} alt={b.data.cover.alt || b.data.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
+              )}
+              <div class="min-w-0">
+                <h3 class="font-semibold text-sm leading-tight truncate">{b.data.title}</h3>
+                <p class="text-xs text-gray-600 mt-1">{formatDuration(b.data.durationTotal)}</p>
+                {b.data.views > 0 && <p class="text-xs text-gray-500">{formatViews(b.data.views)} écoutes</p>}
+              </div>
+            </a>
+          ))}
+        </div>
       </section>
     )}
   </article>
