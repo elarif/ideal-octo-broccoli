@@ -18,7 +18,7 @@ const audioBook = toAudioBook(book);
 ---
 
 <article class="border rounded overflow-hidden hover:shadow transition group relative">
-  <a href={pageUrl(`/livre-audio-gratuit-mp3/${d.slug}`)} class="block">
+  <a href={pageUrl(`/livre-audio-gratuit-mp3/${d.slug}`)} class="block relative">
     <figure class="relative aspect-[3/4] overflow-hidden bg-gray-100">
       {d.cover && (
         <img
@@ -45,7 +45,7 @@ const audioBook = toAudioBook(book);
       {authorsLabel && <p class="text-sm text-gray-700 mt-1">{authorsLabel}</p>}
     </div>
   </a>
-  <div class="absolute top-2 left-2">
+  <div class="absolute top-2 left-2 z-10">
     <PlayButton client:visible book={audioBook} className="w-10 h-10 shadow opacity-60 hover:opacity-100" />
   </div>
 </article>
