@@ -6,5 +6,5 @@ export async function getStaticPaths() {
   return genres.map((genre) => ({ params: { slug: genre.data.slug } }));
 }
 
-return Astro.redirect(`/livre-audio-gratuit-mp3/genre/${Astro.params.slug}/page/1.html`);
+return Astro.redirect(`/livre-audio-gratuit-mp3/genre/${Astro.params.slug}/1.html`);
 ---

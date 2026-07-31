@@ -10,7 +10,7 @@ interface Props {
 const { currentPage, totalPages, baseUrl } = Astro.props;
 const hasPrev = currentPage > 1;
 const hasNext = currentPage < totalPages;
-const pageHref = (n: number) => pageUrl(n === 1 ? baseUrl : `${baseUrl}/page/${n}`);
+const pageHref = (n: number) => pageUrl(n === 1 ? baseUrl : `${baseUrl}/${n}`);
 ---
 
 <nav aria-label="Pagination" class="flex justify-center gap-2 mt-8">
