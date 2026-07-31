@@ -1,0 +1,23 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { pageUrl } from "../lib/urls";
+import { formatDuration } from "../lib/format-duration";
+import { formatViews } from "../lib/format-views";
+
+interface Props {
+  book: CollectionEntry<"books">;
+}
+const { book } = Astro.props;
+const d = book.data;
+---
+
+<a href={pageUrl(`/livre-audio-gratuit-mp3/${d.slug}`)} class="flex gap-3 p-2 border rounded hover:shadow transition">
+  {d.cover && (
+    <img src={d.cover.url} alt={d.cover.alt || d.title} loading="lazy" decoding="async" class="w-16 h-20 object-cover rounded flex-shrink-0" />
+  )}
+  <div class="min-w-0">
+    <h3 class="font-semibold text-sm leading-tight truncate">{d.title}</h3>
+    <p class="text-xs text-gray-600 mt-1">{formatDuration(d.durationTotal)}</p>
+    {d.views > 0 && <p class="text-xs text-gray-500">{formatViews(d.views)} écoutes</p>}
+  </div>
+</a>

@@ -1,0 +1,25 @@
+---
+import { pageUrl } from "../../lib/urls";
+
+interface Props {
+  title?: string;
+  action?: { href: string; label: string };
+  class?: string;
+}
+const { title, action, class: cls = "" } = Astro.props;
+---
+
+<section class={`mb-10 ${cls}`}>
+  {(title || action) && (
+    <div class="flex items-baseline justify-between mb-4">
+      {title && <h2 class="text-2xl font-bold">{title}</h2>}
+      {action && (
+        <a href={pageUrl(action.href)} class="inline-flex items-center gap-1 text-sm font-semibold text-[#2c4cb8] hover:text-[#1a3070] hover:underline">
+          {action.label}
+          <span aria-hidden="true">→</span>
+        </a>
+      )}
+    </div>
+  )}
+  <slot />
+</section>

@@ -1,0 +1,26 @@
+---
+import { pageUrl } from "../../lib/urls";
+
+type Variant = "primary" | "ghost" | "link";
+
+interface Props {
+  href?: string;
+  variant?: Variant;
+  class?: string;
+}
+const { href, variant = "primary", class: cls = "" } = Astro.props;
+
+const base = "inline-flex items-center justify-center rounded transition";
+const styles: Record<Variant, string> = {
+  primary: "bg-primary text-white hover:bg-primary/90 px-4 py-2",
+  ghost: "text-gray-600 hover:text-primary hover:bg-gray-100 p-2",
+  link: "text-primary hover:underline px-0 py-0",
+};
+const classes = `${base} ${styles[variant]} ${cls}`;
+---
+
+{href ? (
+  <a href={pageUrl(href)} class={classes}><slot /></a>
+) : (
+  <button type="button" class={classes}><slot /></button>
+)}
