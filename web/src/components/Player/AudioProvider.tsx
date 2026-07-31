@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 import type { AudioActions, AudioBook, AudioState, AudioTrack } from "../../types/audio";
 
 interface AudioStore extends AudioState, AudioActions {}
@@ -22,7 +22,7 @@ function emit() {
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => { listeners.delete(listener); };
 }
 
 function getSnapshot() {
