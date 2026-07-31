@@ -1,155 +1,133 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { AudioActions, AudioContextValue, AudioState, AudioTrack } from "../../types/audio";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { AudioActions, AudioBook, AudioState, AudioTrack } from "../../types/audio";
 
-const AudioContext = createContext<AudioContextValue | null>(null);
+interface AudioStore extends AudioState, AudioActions {}
 
-const SSR_DEFAULT: AudioContextValue = {
+const initialState: AudioState = {
   isPlaying: false,
   currentBook: null,
   currentTrackIndex: 0,
   currentTime: 0,
   duration: 0,
   volume: 1,
-  playBook: () => {},
-  togglePlay: () => {},
-  playNext: () => {},
-  playPrevious: () => {},
-  seek: () => {},
-  setVolume: () => {},
-  close: () => {},
 };
 
-export function useAudio(): AudioContextValue {
-  const ctx = useContext(AudioContext);
-  if (!ctx) {
-    if (typeof window === "undefined") return SSR_DEFAULT;
-    throw new Error("useAudio must be used inside AudioProvider");
+let state: AudioState = initialState;
+const listeners = new Set<() => void>();
+let audioEl: HTMLAudioElement | null = null;
+
+function emit() {
+  for (const l of listeners) l();
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return state;
+}
+
+function setState(updater: (prev: AudioState) => AudioState) {
+  state = updater(state);
+  emit();
+}
+
+let currentTrackUrl: string | null = null;
+
+function ensureAudio(url: string) {
+  if (currentTrackUrl === url && audioEl) return audioEl;
+  if (audioEl) {
+    audioEl.pause();
+    audioEl.src = "";
+    audioEl = null;
   }
-  return ctx;
+  const audio = new Audio(url);
+  audio.preload = "auto";
+  audioEl = audio;
+  currentTrackUrl = url;
+
+  audio.addEventListener("timeupdate", () => setState((p) => ({ ...p, currentTime: audio.currentTime })));
+  audio.addEventListener("loadedmetadata", () => setState((p) => ({ ...p, duration: audio.duration || 0 })));
+  audio.addEventListener("ended", () => store.playNext());
+  audio.addEventListener("play", () => setState((p) => ({ ...p, isPlaying: true })));
+  audio.addEventListener("pause", () => setState((p) => ({ ...p, isPlaying: false })));
+
+  return audio;
 }
 
-interface Props {
-  children: ReactNode;
-}
+export const store: AudioStore = {
+  ...initialState,
 
-export function AudioProvider({ children }: Props) {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [state, setState] = useState<AudioState>({
-    isPlaying: false,
-    currentBook: null,
-    currentTrackIndex: 0,
-    currentTime: 0,
-    duration: 0,
-    volume: 1,
-  });
-
-  const currentTrack: AudioTrack | null = state.currentBook?.tracks[state.currentTrackIndex] ?? null;
-
-  const actions = useMemo<AudioActions>(
-    () => ({
-      playBook: (book, trackIndex = 0) => {
-        setState((prev) => ({
-          ...prev,
-          currentBook: book,
-          currentTrackIndex: Math.max(0, Math.min(trackIndex, book.tracks.length - 1)),
-          isPlaying: true,
-          currentTime: 0,
-          duration: 0,
-        }));
-      },
-      togglePlay: () => {
-        setState((prev) => ({ ...prev, isPlaying: !prev.isPlaying }));
-      },
-      playNext: () => {
-        setState((prev) => {
-          const book = prev.currentBook;
-          if (!book) return prev;
-          const next = prev.currentTrackIndex + 1;
-          if (next < book.tracks.length) {
-            return { ...prev, currentTrackIndex: next, isPlaying: true, currentTime: 0, duration: 0 };
-          }
-          return { ...prev, isPlaying: false };
-        });
-      },
-      playPrevious: () => {
-        setState((prev) => {
-          const book = prev.currentBook;
-          if (!book) return prev;
-          const previous = Math.max(0, prev.currentTrackIndex - 1);
-          return { ...prev, currentTrackIndex: previous, isPlaying: true, currentTime: 0, duration: 0 };
-        });
-      },
-      seek: (time) => {
-        setState((prev) => ({ ...prev, currentTime: time }));
-        const audio = audioRef.current;
-        if (audio) audio.currentTime = time;
-      },
-      setVolume: (volume) => {
-        setState((prev) => ({ ...prev, volume: Math.max(0, Math.min(1, volume)) }));
-      },
-      close: () => {
-        audioRef.current?.pause();
-        setState((prev) => ({
-          ...prev,
-          currentBook: null,
-          currentTrackIndex: 0,
-          currentTime: 0,
-          duration: 0,
-          isPlaying: false,
-        }));
-      },
-    }),
-    [],
-  );
-
-  useEffect(() => {
-    if (!currentTrack) return;
-    const audio = new Audio(currentTrack.url);
+  playBook(book: AudioBook, trackIndex = 0) {
+    const idx = Math.max(0, Math.min(trackIndex, book.tracks.length - 1));
+    const track = book.tracks[idx];
+    if (!track) return;
+    setState(() => ({
+      isPlaying: true,
+      currentBook: book,
+      currentTrackIndex: idx,
+      currentTime: 0,
+      duration: 0,
+      volume: state.volume,
+    }));
+    const audio = ensureAudio(track.url);
     audio.volume = state.volume;
-    audioRef.current = audio;
+    audio.currentTime = 0;
+    audio.play().catch(() => setState((p) => ({ ...p, isPlaying: false })));
+  },
 
-    const onTimeUpdate = () => setState((prev) => ({ ...prev, currentTime: audio.currentTime }));
-    const onLoadedMetadata = () => setState((prev) => ({ ...prev, duration: audio.duration || 0 }));
-    const onEnded = () => actions.playNext();
-    const onPlay = () => setState((prev) => ({ ...prev, isPlaying: true }));
-    const onPause = () => setState((prev) => ({ ...prev, isPlaying: false }));
+  togglePlay() {
+    if (!audioEl) return;
+    if (audioEl.paused) audioEl.play().catch(() => {});
+    else audioEl.pause();
+  },
 
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("loadedmetadata", onLoadedMetadata);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("play", onPlay);
-    audio.addEventListener("pause", onPause);
-
-    if (state.isPlaying) {
-      audio.play().catch(() => setState((prev) => ({ ...prev, isPlaying: false })));
+  playNext() {
+    if (!state.currentBook) return;
+    const next = state.currentTrackIndex + 1;
+    if (next < state.currentBook.tracks.length) {
+      const track = state.currentBook.tracks[next];
+      setState((p) => ({ ...p, currentTrackIndex: next, currentTime: 0, duration: 0, isPlaying: true }));
+      const audio = ensureAudio(track.url);
+      audio.volume = state.volume;
+      audio.play().catch(() => setState((p) => ({ ...p, isPlaying: false })));
+    } else {
+      setState((p) => ({ ...p, isPlaying: false }));
     }
+  },
 
-    return () => {
-      audio.pause();
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("play", onPlay);
-      audio.removeEventListener("pause", onPause);
-      audioRef.current = null;
-    };
-  }, [currentTrack?.url]);
+  playPrevious() {
+    if (!state.currentBook) return;
+    const prev = Math.max(0, state.currentTrackIndex - 1);
+    const track = state.currentBook.tracks[prev];
+    setState((p) => ({ ...p, currentTrackIndex: prev, currentTime: 0, duration: 0, isPlaying: true }));
+    const audio = ensureAudio(track.url);
+    audio.volume = state.volume;
+    audio.play().catch(() => setState((p) => ({ ...p, isPlaying: false })));
+  },
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
-    if (state.isPlaying && audio.paused) {
-      audio.play().catch(() => setState((prev) => ({ ...prev, isPlaying: false })));
-    } else if (!state.isPlaying && !audio.paused) {
-      audio.pause();
-    }
-  }, [state.isPlaying, currentTrack?.url]);
+  seek(time: number) {
+    if (audioEl) audioEl.currentTime = time;
+    setState((p) => ({ ...p, currentTime: time }));
+  },
 
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = state.volume;
-  }, [state.volume]);
+  setVolume(v: number) {
+    const vol = Math.max(0, Math.min(1, v));
+    if (audioEl) audioEl.volume = vol;
+    setState((p) => ({ ...p, volume: vol }));
+  },
 
-  const value: AudioContextValue = useMemo(() => ({ ...state, ...actions }), [state, actions]);
+  close() {
+    audioEl?.pause();
+    audioEl = null;
+    currentTrackUrl = null;
+    setState(() => ({ ...initialState, volume: state.volume }));
+  },
+};
 
-  return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
+export function useAudio(): AudioStore {
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  return { ...snapshot, ...store };
 }
