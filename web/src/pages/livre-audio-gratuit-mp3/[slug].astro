@@ -8,6 +8,10 @@ import { pageUrl } from "../../lib/urls";
 import { toAudioBook } from "../../lib/audio-book";
 import Section from "../../components/ui/Section.astro";
 import CompactBookCard from "../../components/CompactBookCard.astro";
+import { ZipDownloadButton } from "../../components/ZipDownloadButton";
+import CommentsPlaceholder from "../../components/CommentsPlaceholder.astro";
+import Button from "../../components/ui/Button.astro";
+import { Download } from "lucide-react";
 
 export async function getStaticPaths() {
   const books = await getCollection("books");
@@ -38,6 +42,14 @@ const topBooks = allBooks
   .filter((b) => b.data.slug !== d.slug)
   .sort((a, b) => b.data.views - a.data.views)
   .slice(0, 6);
+
+const authorSlug = d.authors[0]?.slug;
+async function loadAuthorPortrait(slug: string) {
+  const all = await getCollection("authors");
+  const entry = all.find((a) => a.data.slug === slug);
+  return entry?.data.portrait;
+}
+const authorPortrait = authorSlug ? await loadAuthorPortrait(authorSlug) : undefined;
 ---
 
 <Base
@@ -93,11 +105,34 @@ const topBooks = allBooks
         {regionsLabel && <p class="mb-1">Région : {regionsLabel}</p>}
         {licencesLabel && <p class="mb-1">Licence : {licencesLabel}</p>}
         {d.commentCount > 0 && <p class="mb-1 text-gray-600">{d.commentCount} commentaire{d.commentCount > 1 ? "s" : ""}</p>}
+        {authorPortrait && (
+          <div class="mt-4 flex items-start gap-3">
+            <img src={authorPortrait.url} alt={authorPortrait.alt} class="w-20 h-24 object-cover rounded shadow" loading="lazy" decoding="async" />
+            <div>
+              <p class="text-sm font-medium">{d.authors[0]?.name}</p>
+              <p class="text-xs text-gray-500">{authorPortrait.alt}</p>
+            </div>
+          </div>
+        )}
       </div>
     </header>
 
     {d.tracks.length > 0 && (
       <Section title="Écouter / Télécharger">
+        <div class="flex flex-wrap gap-3 mb-4">
+          <ZipDownloadButton client:visible title={d.title} tracks={audioBook.tracks.map((t) => ({ title: t.title, url: t.url }))} />
+          {d.downloadUrl && (
+            <Button href={d.downloadUrl} variant="ghost">
+              <span class="inline-flex items-center gap-2">
+                <Download size={18} />
+                Télécharger le MP3
+              </span>
+            </Button>
+          )}
+          {d.textUrl && (
+            <Button href={d.textUrl} variant="link">Consulter la version texte →</Button>
+          )}
+        </div>
         <TrackList client:load book={audioBook} />
       </Section>
     )}
@@ -123,5 +158,7 @@ const topBooks = allBooks
         </div>
       </Section>
     )}
+
+    <CommentsPlaceholder count={d.commentCount} />
   </article>
 </Base>

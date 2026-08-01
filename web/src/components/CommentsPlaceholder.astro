@@ -1,0 +1,17 @@
+---
+interface Props {
+  count?: number;
+}
+const { count = 0 } = Astro.props;
+---
+
+<section class="border-t pt-6 mt-8">
+  <h2 class="text-xl font-bold mb-3">Commentaires</h2>
+  <p class="text-gray-600 text-sm mb-4">
+    {count > 0 ? `${count} commentaire${count > 1 ? "s" : ""} — ` : ""}Les commentaires seront disponibles prochainement.
+  </p>
+  <p class="text-sm text-gray-500">
+    <a href="#" class="text-primary hover:underline">Se connecter</a> pour laisser un commentaire.
+    <span class="ml-2 text-xs">(Fonctionnalité active à venir)</span>
+  </p>
+</section>
