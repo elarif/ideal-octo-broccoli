@@ -7,6 +7,11 @@ import { normalizeSlug } from "../src/lib/slug-normalize";
 const BOOKS_OUT = join(process.cwd(), "src/content/books");
 const FETCH_LIMIT = Number(process.env.FETCH_LIMIT || "500");
 
+function extractTextUrl(content: string): string | undefined {
+  const match = content.match(/href="(https?:\/\/[^"]*(?:wikisource|gutenberg|ebooks|bnf|gallica)[^"]*)"/i);
+  return match?.[1];
+}
+
 const HTML_ENTITIES: Record<string, string> = {
   amp: "&",
   lt: "<",
@@ -130,6 +135,8 @@ async function main() {
       views: post.meta?.["post-count-all"] ?? 0,
       likeCount: post.meta?.like_count ?? 0,
       commentCount: 0,
+      downloadUrl: post.meta?.download_url || undefined,
+      textUrl: extractTextUrl(post.content.rendered),
       publishedAt: post.date_gmt,
       modifiedAt: post.modified_gmt,
       legacyUrl: post.link,

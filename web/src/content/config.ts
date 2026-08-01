@@ -40,6 +40,8 @@ const books = defineCollection({
     views: z.number().int().nonnegative().default(0),
     likeCount: z.number().int().nonnegative().default(0),
     commentCount: z.number().int().nonnegative().default(0),
+    downloadUrl: z.string().url().optional(),
+    textUrl: z.string().url().optional(),
     publishedAt: z.coerce.date(),
     modifiedAt: z.coerce.date(),
     legacyUrl: z.string().url(),
@@ -54,6 +56,7 @@ const termCollection = defineCollection({
     name: z.string(),
     description: z.string().default(""),
     count: z.number().int().nonnegative().default(0),
+    portrait: z.object({ url: z.string().url(), alt: z.string().default("") }).optional(),
   }),
 });
 
