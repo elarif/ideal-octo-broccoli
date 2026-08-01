@@ -6,20 +6,61 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 0" # Weekly sync every Sunday at 03:00 UTC
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  deploy-worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: proxy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: proxy
+          command: deploy
+
+      - name: Trigger catalogue sync
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          curl -sS -X POST "https://cache.litteratureaudio.workers.dev/admin/sync" \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -H "Content-Type: application/json"
+
   deploy:
+    needs: deploy-worker
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: web
     env:
+      WP_PROXY_URL: ${{ vars.WP_PROXY_URL || 'https://cache.litteratureaudio.workers.dev' }}
       WP_API_BASE: ${{ secrets.WP_API_BASE }}
-      SITE_URL: ${{ vars.SITE_URL || 'https://litterature.pages.dev' }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://litteratureaudio.pages.dev' }}
       FETCH_LIMIT: ${{ vars.FETCH_LIMIT || '500' }}
     steps:
       - name: Checkout repository

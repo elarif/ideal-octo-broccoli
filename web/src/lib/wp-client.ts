@@ -58,8 +58,15 @@ class WpClient {
   private base: string;
   constructor(base: string) { this.base = base.replace(/\/$/, ""); }
 
+  private resolvePath(path: string): string {
+    if (env.wpProxyUrl) {
+      return `${env.wpProxyUrl}${path.replace("/wp-json", "/wp")}`;
+    }
+    return `${this.base}${path}`;
+  }
+
   private async req(path: string, params: Record<string, string | number | boolean | undefined> = {}): Promise<{ data: unknown; headers: Headers }> {
-    const url = new URL(`${this.base}${path}`);
+    const url = new URL(this.resolvePath(path));
     for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue;
       const key = k === "embed" ? "_embed" : k === "perPage" ? "per_page" : k;

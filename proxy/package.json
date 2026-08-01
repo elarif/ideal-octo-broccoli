@@ -1,0 +1,19 @@
+{
+  "name": "@la/proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "d1:create": "wrangler d1 create litteratureaudio",
+    "d1:migrate:local": "wrangler d1 migrations apply litteratureaudio --local",
+    "d1:migrate:remote": "wrangler d1 migrations apply litteratureaudio --remote",
+    "d1:reset": "wrangler d1 execute litteratureaudio --remote --file=./migrations/0001_init.sql"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240614.0",
+    "itty-router": "^5.0.24",
+    "wrangler": "^3.62.0"
+  }
+}
