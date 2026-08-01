@@ -46,8 +46,35 @@ export async function fetchTaxonomies(outRoot: string) {
   for (const [wpTaxonomy, dirName] of Object.entries(TAXONOMIES)) {
     const outDir = join(outRoot, dirName);
     await mkdir(outDir, { recursive: true });
-    let count = 0;
+    const terms: Array<{ id: number; slug: string; name: string; description?: string; count?: number }> = [];
     for await (const term of wpClient.paginateTerms(wpTaxonomy)) {
+      terms.push(term);
+    }
+
+    let portraits: Map<string, { url: string; alt: string }> = new Map();
+    if (wpTaxonomy === "auteur") {
+      console.log(`→ Fetching ${terms.length} author portraits in parallel batches…`);
+      const CONCURRENCY = 20;
+      for (let i = 0; i < terms.length; i += CONCURRENCY) {
+        const batch = terms.slice(i, i + CONCURRENCY);
+        const results = await Promise.all(
+          batch.map(async (term) => {
+            const slug = normalizeSlug(term.slug);
+            const portrait = await fetchAuthorPortrait(slug, term.name);
+            return { slug, portrait };
+          })
+        );
+        for (const { slug, portrait } of results) {
+          if (portrait) portraits.set(slug, portrait);
+        }
+        if ((i + CONCURRENCY) % 100 === 0 || i + CONCURRENCY >= terms.length) {
+          console.log(`  ${Math.min(i + CONCURRENCY, terms.length)} portraits fetched…`);
+        }
+      }
+    }
+
+    let count = 0;
+    for (const term of terms) {
       const slug = normalizeSlug(term.slug);
       const payload: Record<string, unknown> = {
         id: term.id,
@@ -57,7 +84,7 @@ export async function fetchTaxonomies(outRoot: string) {
         count: term.count || 0,
       };
       if (wpTaxonomy === "auteur") {
-        const portrait = await fetchAuthorPortrait(slug, term.name);
+        const portrait = portraits.get(slug);
         if (portrait) payload.portrait = portrait;
       }
       await writeFile(join(outDir, `${slug}.json`), JSON.stringify(payload, null, 2));
