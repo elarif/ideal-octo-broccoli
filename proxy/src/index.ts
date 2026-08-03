@@ -488,7 +488,7 @@ async function healthCheck(env: Env): Promise<Response> {
   }
 }
 
-async function syncMissingMp3(env: Env, batchSize = 20): Promise<{ processed: number; remaining: number }> {
+async function syncMissingMp3(env: Env, batchSize = 2): Promise<{ processed: number; remaining: number }> {
   const rows = await env.DB.prepare(
     `SELECT t.id, t.url FROM tracks t WHERE t.b2_url IS NULL AND t.url LIKE 'http%' LIMIT ?`
   ).bind(batchSize).all<{ id: number; url: string }>();
@@ -572,7 +572,10 @@ export default {
       if (!auth.startsWith("Bearer ") || auth.slice(7) !== env.SYNC_SECRET) {
         return jsonResponse({ error: "unauthorized" }, 401);
       }
-      const result = await syncMissingMp3(env);
+      const url = new URL(req.url);
+      const batchParam = Number(url.searchParams.get("batch")) || 2;
+      const batchSize = Math.min(5, Math.max(1, batchParam));
+      const result = await syncMissingMp3(env, batchSize);
       return jsonResponse({ ok: true, ...result });
     });
     router.post("/admin/tracks/:id", async (req) => {
