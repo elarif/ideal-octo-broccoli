@@ -1,4 +1,5 @@
 import { Router, IRequest } from "itty-router";
+import { normalizeSlug } from "./normalize";
 
 export interface Env {
   DB: D1Database;
@@ -108,15 +109,6 @@ function htmlDecode(input: string): string {
     })
     .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCodePoint(Number.parseInt(hex, 16)));
-}
-
-function normalizeSlug(slug: string): string {
-  return slug
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function termMap(post: WpPost, taxonomy: string): WpTerm[] {
@@ -267,6 +259,26 @@ async function getSyncState(env: Env, key: string, defaultValue: string): Promis
 
 async function setSyncState(env: Env, key: string, value: string) {
   await env.DB.prepare("INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=datetime('now')").bind(key, value).run();
+}
+
+export async function getTrackContext(env: Env, trackId: number): Promise<{ bookSlug: string; voiceSlug: string; order: number; trackSlug: string; url: string } | null> {
+  const track = await env.DB.prepare(
+    `SELECT t.id, t.book_id, t.slug, t.title, t.url, t."order", b.slug as book_slug
+     FROM tracks t JOIN books b ON t.book_id = b.id WHERE t.id = ?`
+  ).bind(trackId).first<{ book_id: number; slug: string; title: string; url: string; order: number; book_slug: string }>();
+  if (!track) return null;
+
+  const voice = await env.DB.prepare(
+    `SELECT v.slug as voice_slug FROM book_voices bv JOIN voices v ON bv.voice_id = v.id WHERE bv.book_id = ? LIMIT 1`
+  ).bind(track.book_id).first<{ voice_slug: string }>();
+
+  return {
+    bookSlug: track.book_slug,
+    voiceSlug: voice?.voice_slug || "unknown",
+    order: track.order,
+    trackSlug: normalizeSlug(track.slug),
+    url: track.url,
+  };
 }
 
 const SYNC_PAGE_SIZE = 5;
