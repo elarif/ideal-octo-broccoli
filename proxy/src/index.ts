@@ -1,5 +1,7 @@
 import { Router, IRequest } from "itty-router";
 import { normalizeSlug } from "./normalize";
+import { uploadToB2 } from "./b2";
+import { buildB2Key } from "./b2-path";
 
 export interface Env {
   DB: D1Database;
@@ -486,6 +488,32 @@ async function healthCheck(env: Env): Promise<Response> {
   }
 }
 
+async function syncMissingMp3(env: Env, batchSize = 20): Promise<{ processed: number; remaining: number }> {
+  const rows = await env.DB.prepare(
+    `SELECT t.id, t.url FROM tracks t WHERE t.b2_url IS NULL AND t.url LIKE 'http%' LIMIT ?`
+  ).bind(batchSize).all<{ id: number; url: string }>();
+
+  let processed = 0;
+  for (const track of rows.results || []) {
+    try {
+      const ctx = await getTrackContext(env, track.id);
+      if (!ctx) continue;
+      const resp = await fetch(ctx.url, { headers: { "user-agent": "LitteratureaudioBot/1.0", referer: "https://www.litteratureaudio.com/" } });
+      if (!resp.ok) continue;
+      const body = await resp.arrayBuffer();
+      const key = buildB2Key(ctx.bookSlug, ctx.voiceSlug, ctx.order, ctx.trackSlug);
+      const cdnUrl = await uploadToB2(env, key, body, "audio/mpeg");
+      await env.DB.prepare("UPDATE tracks SET b2_url = ? WHERE id = ?").bind(cdnUrl, track.id).run();
+      processed++;
+    } catch {
+      // skip failed track, continue
+    }
+  }
+
+  const remainingRow = await env.DB.prepare("SELECT COUNT(*) as n FROM tracks WHERE b2_url IS NULL AND url LIKE 'http%'").first<{ n: number }>();
+  return { processed, remaining: remainingRow?.n ?? 0 };
+}
+
 async function runScheduledSync(env: Env) {
   // Process up to 20 book pages per scheduled run to stay within Worker limits.
   let page = Math.max(1, Number(await getSyncState(env, "books_page", "1")));
@@ -537,6 +565,14 @@ export default {
         await setSyncState(env, "books_page", "1");
         await env.KV.put("last_sync_at", new Date().toISOString());
       }
+      return jsonResponse({ ok: true, ...result });
+    });
+    router.post("/admin/sync/mp3", async (req) => {
+      const auth = req.headers.get("authorization") || "";
+      if (!auth.startsWith("Bearer ") || auth.slice(7) !== env.SYNC_SECRET) {
+        return jsonResponse({ error: "unauthorized" }, 401);
+      }
+      const result = await syncMissingMp3(env);
       return jsonResponse({ ok: true, ...result });
     });
     router.post("/admin/tracks/:id", async (req) => {
