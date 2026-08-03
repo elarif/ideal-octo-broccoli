@@ -68,8 +68,6 @@ function extractCover(post: WpPost) {
 }
 
 async function main() {
-  await fetchTaxonomies(join(process.cwd(), "src/content"));
-
   await mkdir(BOOKS_OUT, { recursive: true });
   console.log(`→ Fetch up to ${FETCH_LIMIT} books from WordPress…`);
   const posts: WpPost[] = [];
@@ -80,6 +78,17 @@ async function main() {
   }
   console.log(`✓ ${posts.length} books fetched`);
 
+  // Fetch taxonomies and only scrape portraits for authors present in the built books.
+  const authorSlugs = new Set<string>();
+  for (const post of posts) {
+    const groups = post._embedded?.["wp:term"] || [];
+    for (const group of groups) {
+      for (const term of group) {
+        if (term.taxonomy === "auteur") authorSlugs.add(normalizeSlug(term.slug));
+      }
+    }
+  }
+  await fetchTaxonomies(join(process.cwd(), "src/content"), authorSlugs);
   console.log("→ Fetch audio tracks per book (parallel batch)…");
   const tracksByParent = new Map<number, WpMedia[]>();
   const CONCURRENCY = 20;

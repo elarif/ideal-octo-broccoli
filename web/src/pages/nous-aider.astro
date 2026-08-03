@@ -1,5 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
+import { pageUrl } from "../lib/urls.ts";
 ---
 
 <Base title="Nous aider | Litteratureaudio.com" description="Découvrez comment contribuer et soutenir Litteratureaudio.com.">
@@ -11,7 +12,12 @@ import Base from "../layouts/Base.astro";
       <li><strong>Donnez de votre voix</strong> pour enrichir la bibliothèque de nouveaux enregistrements.</li>
       <li><strong>Faites un don</strong> pour soutenir l'hébergement et le développement du site.</li>
       <li><strong>Signalez-nous</strong> les erreurs ou les liens morts afin que nous puissions les corriger.</li>
+      <li>Consultez la rubrique <a href={pageUrl("/aide")} class="text-primary hover:underline">Aide</a> pour les questions fréquentes.</li>
     </ul>
     <p>Merci à toutes celles et ceux qui rendent ce projet possible !</p>
+    <p>Adresse de l’association :<br />
+    <strong>Des Livres à Lire et à Entendre</strong><br />
+    11-13 rue Gracieuse<br />
+    75005 Paris</p>
   </article>
 </Base>

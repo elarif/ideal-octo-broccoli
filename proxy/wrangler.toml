@@ -6,12 +6,12 @@ compatibility_date = "2024-06-14"
 [[d1_databases]]
 binding = "DB"
 database_name = "litteratureaudio"
-database_id = "__D1_DATABASE_ID__"
+database_id = "2174aacf-c66b-4409-bafe-715ff8ec6a84"
 
 # KV namespace: create via Cloudflare dashboard and paste the id below.
 [[kv_namespaces]]
 binding = "KV"
-id = "__KV_NAMESPACE_ID__"
+id = "e7222454fde143e4810874c6281e9393"
 
 [vars]
 WP_API_BASE = "https://www.litteratureaudio.com"

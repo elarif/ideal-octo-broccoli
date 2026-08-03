@@ -27,7 +27,7 @@
 ### GitHub Variables
 
 - `SITE_URL` — Public site URL (default `https://litteratureaudio.pages.dev`).
-- `WP_PROXY_URL` — Worker URL (default `https://cache.litteratureaudio.workers.dev`).
+- `WP_PROXY_URL` — Worker URL (default `https://litteratureaudio-cache.elarif-ahamada.workers.dev`).
 - `FETCH_LIMIT` — Number of books to fetch per build (default `500`).
 
 ## Worker Configuration
@@ -63,7 +63,7 @@ mp3/jules-verne-deux-ans-de-vacances/lyra/01-chap-01-deux-ans-de-vacances.mp3
 To populate or refresh the Worker cache:
 
 ```bash
-curl -X POST "https://cache.litteratureaudio.workers.dev/admin/sync" \
+curl -X POST "https://litteratureaudio-cache.elarif-ahamada.workers.dev/admin/sync" \
   -H "Authorization: Bearer <SYNC_SECRET>" \
   -H "Content-Type: application/json"
 ```

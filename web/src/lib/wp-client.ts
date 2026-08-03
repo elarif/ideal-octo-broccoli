@@ -80,8 +80,9 @@ class WpClient {
   async *paginatePosts(): AsyncGenerator<WpPost> {
     let page = 1;
     let totalPages = 1;
+    const perPage = env.wpProxyUrl ? 25 : 100;
     while (page <= totalPages) {
-      const { data, headers } = await this.req("/wp-json/wp/v2/posts", { perPage: 100, page, embed: true });
+      const { data, headers } = await this.req("/wp-json/wp/v2/posts", { perPage, page, embed: true });
       const posts = data as WpPost[];
       totalPages = Number(headers.get("x-wp-totalpages") || 1);
       for (const p of posts) yield p;
@@ -113,18 +114,16 @@ class WpClient {
     while (page <= totalPages) {
       try {
         const { data, headers } = await this.req("/wp-json/wp/v2/media", {
-          parent: postId, perPage: 100, page, orderby: "menu_order", order: "asc",
+          post: postId, perPage: 100, page, orderby: "menu_order", order: "asc",
         });
         all.push(...(data as WpMedia[]));
         totalPages = Number(headers.get("x-wp-totalpages") || 1);
-      } catch (e) {
-        const msg = String(e);
-        if (msg.includes("rest_post_invalid_id") || msg.includes("400")) return all;
-        throw e;
+      } catch {
+        return all;
       }
       page++;
     }
-    return all.filter((m) => m.mime_type.startsWith("audio/"));
+    return all.filter((m) => m.mime_type?.startsWith("audio/"));
   }
 
   async getMediaByIds(ids: number[]): Promise<WpMedia[]> {

@@ -44,12 +44,8 @@ jobs:
           workingDirectory: proxy
           command: deploy
 
-      - name: Trigger catalogue sync
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-        run: |
-          curl -sS -X POST "https://cache.litteratureaudio.workers.dev/admin/sync" \
-            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
-            -H "Content-Type: application/json"
+      # The weekly scheduled sync is handled by the Worker itself via the schedule() handler.
+      # This keeps the GitHub Action fast and avoids 6-hour job timeouts.
 
   deploy:
     needs: deploy-worker
@@ -58,8 +54,8 @@ jobs:
       run:
         working-directory: web
     env:
-      WP_PROXY_URL: ${{ vars.WP_PROXY_URL || 'https://cache.litteratureaudio.workers.dev' }}
-      WP_API_BASE: ${{ secrets.WP_API_BASE }}
+      WP_PROXY_URL: ${{ vars.WP_PROXY_URL || 'https://litteratureaudio-cache.elarif-ahamada.workers.dev' }}
+      WP_API_BASE: ${{ secrets.WP_API_BASE || 'https://www.litteratureaudio.com' }}
       SITE_URL: ${{ vars.SITE_URL || 'https://litteratureaudio.pages.dev' }}
       FETCH_LIMIT: ${{ vars.FETCH_LIMIT || '500' }}
     steps:

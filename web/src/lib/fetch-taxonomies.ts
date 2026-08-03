@@ -42,7 +42,7 @@ async function fetchAuthorPortrait(slug: string, name: string): Promise<{ url: s
   }
 }
 
-export async function fetchTaxonomies(outRoot: string) {
+export async function fetchTaxonomies(outRoot: string, authorSlugs?: Set<string>) {
   for (const [wpTaxonomy, dirName] of Object.entries(TAXONOMIES)) {
     const outDir = join(outRoot, dirName);
     await mkdir(outDir, { recursive: true });
@@ -53,10 +53,13 @@ export async function fetchTaxonomies(outRoot: string) {
 
     let portraits: Map<string, { url: string; alt: string }> = new Map();
     if (wpTaxonomy === "auteur") {
-      console.log(`→ Fetching ${terms.length} author portraits in parallel batches…`);
+      const termsToPortrait = authorSlugs
+        ? terms.filter((term) => authorSlugs.has(normalizeSlug(term.slug)))
+        : terms.slice(0, 300);
+      console.log(`→ Fetching ${termsToPortrait.length} author portraits in parallel batches…`);
       const CONCURRENCY = 20;
-      for (let i = 0; i < terms.length; i += CONCURRENCY) {
-        const batch = terms.slice(i, i + CONCURRENCY);
+      for (let i = 0; i < termsToPortrait.length; i += CONCURRENCY) {
+        const batch = termsToPortrait.slice(i, i + CONCURRENCY);
         const results = await Promise.all(
           batch.map(async (term) => {
             const slug = normalizeSlug(term.slug);
@@ -67,8 +70,8 @@ export async function fetchTaxonomies(outRoot: string) {
         for (const { slug, portrait } of results) {
           if (portrait) portraits.set(slug, portrait);
         }
-        if ((i + CONCURRENCY) % 100 === 0 || i + CONCURRENCY >= terms.length) {
-          console.log(`  ${Math.min(i + CONCURRENCY, terms.length)} portraits fetched…`);
+        if ((i + CONCURRENCY) % 100 === 0 || i + CONCURRENCY >= termsToPortrait.length) {
+          console.log(`  ${Math.min(i + CONCURRENCY, termsToPortrait.length)} portraits fetched…`);
         }
       }
     }

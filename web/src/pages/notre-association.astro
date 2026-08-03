@@ -1,11 +1,110 @@
 ---
 import Base from "../layouts/Base.astro";
+import { pageUrl } from "../lib/urls.ts";
 ---
 
-<Base title="Notre association | Litteratureaudio.com" description="Présentation de l'association Litteratureaudio.com.">
+<Base title="Notre association | Litteratureaudio.com" description="Présentation de l'association Des Livres à Lire et à Entendre, de son équipe et de ses contributeurs.">
   <article class="prose max-w-none">
     <h1>Notre association</h1>
-    <p>Litteratureaudio.com est une association loi 1901 dont l'objectif est de mettre gratuitement à disposition des livres audio du domaine public et sous licence libre.</p>
-    <p>Ce site est entièrement géré par des bénévoles passionnés par la littérature et l'audio.</p>
+
+    <h2>Le concept</h2>
+    <p>
+      <strong>Des Livres à Lire et à Entendre</strong> est une association loi 1901, déclarée à la Préfecture de Saint-Germain-en-Laye le 23 décembre 2003,
+      qui a pour objet de faciliter l’accès de tous, et en particulier des non-voyants et malvoyants, aux joies de la littérature.
+    </p>
+    <p>
+      Notre principal outil d’action est notre site internet, créé en mars 2007, qui a deux fonctions :
+    </p>
+    <ol>
+      <li>
+        Fédérer une communauté d’internautes bénévoles qui enregistrent leurs propres lectures, afin de constituer un vaste catalogue de livres audio gratuits.<br />
+        Voir : <a href={pageUrl("/notre-bibliotheque-de-livres-audio-gratuits")} class="text-primary hover:underline">Notre bibliothèque de livres audio gratuits</a>.
+      </li>
+      <li>
+        Recenser tous les autres livres audio disponibles gratuitement sur internet.<br />
+        Voir : <a href={pageUrl("/recherche")} class="text-primary hover:underline">Rechercher d’autres livres audio gratuits</a>.
+      </li>
+    </ol>
+    <p>
+      Si notre projet vous intéresse et que vous souhaitez savoir comment nous aider par des initiatives simples, rendez-vous sur la page
+      <a href={pageUrl("/nous-aider")} class="text-primary hover:underline">« Nous aider »</a>.
+    </p>
+
+    <h2>L’équipe</h2>
+    <h3>Les membres du bureau</h3>
+    <p>
+      <strong>Augustin Brunault</strong> (Président) et <strong>Clément Pitton</strong> (Trésorier) sont les co-fondateurs de
+      « Des Livres à Lire et à Entendre ». Ensemble, et en concertation avec les autres membres, ils assurent la gestion administrative de l’association
+      ainsi que la maintenance et le développement de son site internet.
+    </p>
+
+    <h3>Les contributeurs</h3>
+    <ul>
+      <li>Vincent de l’Épine</li>
+      <li>Pauline Pucciano</li>
+      <li>Gaëlle</li>
+    </ul>
+    <p>
+      Les contributeurs sont des donneurs de voix qui ont fait le choix généreux de s’impliquer dans l’administration quotidienne du site
+      Litteratureaudio.com. En validant les essais des nouveaux membres, en corrigeant les billets en attente de publication,
+      et d’une manière générale en guidant chaque donneur de voix pour qu’il s’intègre pleinement à notre équipe,
+      ils assurent au quotidien le bon fonctionnement du site.
+    </p>
+
+    <h3>Les donneurs de voix</h3>
+    <p>
+      Sans eux, cet espace n’existerait pas ! Nos 335 donneurs de voix vous accompagnent au quotidien, à la maison ou dans les transports en public.
+      Devenus adeptes de la lecture à voix haute, ils s’attachent à vous transmettre leur passion des beaux textes.
+    </p>
+    <p>
+      Voir : <a href={pageUrl("/classement-de-nos-livres-audio-gratuits-par-donneur-ou-donneuse-de-voix")} class="text-primary hover:underline">
+        Tous nos livres audio par donneur/donneuse de voix
+      </a>.
+    </p>
+
+    <h3>Le comité de lecture</h3>
+    <p>
+      Par ailleurs, la validation des textes contemporains en vue de leur publication sur le site repose sur le travail d’un comité de lecture,
+      composé de :
+    </p>
+    <ul>
+      <li>Alain Degandt</li>
+      <li>Brigitte84</li>
+      <li>Bruissement</li>
+      <li>Christian Dousset</li>
+      <li>Éole</li>
+      <li>Gaëlle</li>
+      <li>Gustave</li>
+      <li>Mon Evasion</li>
+      <li>Pauline Pucciano</li>
+      <li>Pomme</li>
+      <li>Saperlipopette</li>
+      <li>Thérèse</li>
+      <li>Vincent de l’Épine</li>
+    </ul>
+
+    <h3>Les sélections thématiques</h3>
+    <p>
+      Un travail éditorial de mise en valeur du contenu de notre bibliothèque, sous forme de sélections thématiques présentées en page d’accueil,
+      est également assuré par :
+    </p>
+    <ul>
+      <li>Bruant d’Almeval</li>
+      <li>Gaëlle</li>
+    </ul>
+
+    <h2>Vous souhaitez devenir donneur ou donneuse de voix ?</h2>
+    <p>
+      Rendez-vous sur la page <a href={pageUrl("/nous-aider")} class="text-primary hover:underline">« Nous aider »</a> !
+    </p>
+
+    <h2>Pour en savoir plus…</h2>
+    <p>
+      Il vous reste des questions ? Pensez à consulter notre rubrique
+      <a href={pageUrl("/aide")} class="text-primary hover:underline">« Aide »</a>, qui y répond certainement.
+    </p>
+    <p>
+      Si toutefois la réponse que vous cherchez n’y figure pas, vous pouvez ajouter un nouveau commentaire ou nous contacter via notre forum.
+    </p>
   </article>
 </Base>

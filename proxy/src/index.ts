@@ -82,11 +82,18 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
   });
 }
 
-async function fetchFromWP(env: Env, path: string, params: Record<string, string> = {}): Promise<unknown> {
+async function fetchFromWP(env: Env, path: string, params: Record<string, string> = {}, attempt = 1): Promise<unknown> {
   const url = new URL(`${env.WP_API_BASE}${path}`);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const resp = await fetch(url.toString(), { headers: { accept: "application/json" } });
-  if (!resp.ok) throw new Error(`WP API ${resp.status} ${url.toString()}`);
+  if (!resp.ok) {
+    const shouldRetry = attempt <= 1 && (resp.status >= 500 || resp.status === 429);
+    if (shouldRetry) {
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+      return fetchFromWP(env, path, params, attempt + 1);
+    }
+    throw new Error(`WP API ${resp.status} ${url.toString()}`);
+  }
   return await resp.json();
 }
 
@@ -241,46 +248,85 @@ async function* paginateTerms(env: Env, taxonomy: string): AsyncGenerator<WpTerm
   let totalPages = 1;
   while (page <= totalPages) {
     const data = await fetchFromWP(env, `/wp-json/wp/v2/${taxonomy}`, {
-      per_page: "100",
+      per_page: "50",
       page: String(page),
       hide_empty: "true",
       _fields: "id,slug,name,description,count",
     }) as WpTerm[];
     if (!Array.isArray(data) || data.length === 0) break;
-    totalPages = data.length === 100 ? page + 1 : page;
+    totalPages = data.length === 50 ? page + 1 : page;
     for (const t of data) yield t;
     page++;
   }
 }
 
-async function syncDatabase(env: Env, since?: string): Promise<{ books: number; authors: number }> {
-  let bookCount = 0;
-  const batchSize = 50;
-  let bookBatch: WpPost[] = [];
+async function getSyncState(env: Env, key: string, defaultValue: string): Promise<string> {
+  const row = await env.DB.prepare("SELECT value FROM sync_state WHERE key = ?").bind(key).first<{ value: string }>();
+  return row?.value ?? defaultValue;
+}
 
-  for await (const post of paginatePosts(env, since)) {
-    bookBatch.push(post);
-    if (bookBatch.length >= batchSize) {
-      await processBookBatch(env, bookBatch);
-      bookCount += bookBatch.length;
-      bookBatch = [];
-    }
-  }
-  if (bookBatch.length > 0) {
-    await processBookBatch(env, bookBatch);
-    bookCount += bookBatch.length;
+async function setSyncState(env: Env, key: string, value: string) {
+  await env.DB.prepare("INSERT INTO sync_state (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=datetime('now')").bind(key, value).run();
+}
+
+const SYNC_PAGE_SIZE = 5;
+
+async function syncDatabase(env: Env, page: number, since?: string): Promise<{ page: number; processed: number; has_more: boolean; total_books: number; total_authors: number }> {
+  const params: Record<string, string> = { per_page: String(SYNC_PAGE_SIZE), page: String(page), embed: "true" };
+  if (since) params.after = since;
+  const posts = await fetchFromWP(env, "/wp-json/wp/v2/posts", params) as WpPost[];
+  if (!Array.isArray(posts) || posts.length === 0) {
+    await env.KV.put("last_sync_at", new Date().toISOString());
+    const totals = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM books) as books, (SELECT COUNT(*) FROM authors) as authors").first<{ books: number; authors: number }>();
+    return { page, processed: 0, has_more: false, total_books: totals?.books ?? 0, total_authors: totals?.authors ?? 0 };
   }
 
+  await processBookBatch(env, posts);
+
+  const hasMore = posts.length === SYNC_PAGE_SIZE;
+  if (!hasMore) {
+    await env.KV.put("last_sync_at", new Date().toISOString());
+  }
+
+  const totals = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM books) as books, (SELECT COUNT(*) FROM authors) as authors").first<{ books: number; authors: number }>();
+  return { page, processed: posts.length, has_more: hasMore, total_books: totals?.books ?? 0, total_authors: totals?.authors ?? 0 };
+}
+
+async function syncAllTerms(env: Env, resume = false): Promise<{ taxonomies: string[]; authors: number; completed: boolean }> {
+  const taxonomies = Object.entries(TAXONOMY_MAP);
   let authorCount = 0;
-  for (const [wpTax, _table] of Object.entries(TAXONOMY_MAP)) {
-    for await (const term of paginateTerms(env, wpTax)) {
-      await upsertTerm(env, term, wpTax);
-      if (wpTax === "auteur") authorCount++;
+
+  const startIndex = resume ? Number(await getSyncState(env, "terms_index", "0")) : 0;
+  for (let i = startIndex; i < taxonomies.length; i++) {
+    const [wpTax, _table] = taxonomies[i];
+    const startPage = resume ? Number(await getSyncState(env, `terms_page_${wpTax}`, "1")) : 1;
+    let page = startPage;
+    let totalPages = 1;
+    while (page <= totalPages) {
+      const data = await fetchFromWP(env, `/wp-json/wp/v2/${wpTax}`, {
+        per_page: "50",
+        page: String(page),
+        hide_empty: "true",
+        _fields: "id,slug,name,description,count",
+      }) as WpTerm[];
+      if (!Array.isArray(data) || data.length === 0) break;
+      for (const term of data) {
+        await upsertTerm(env, term, wpTax);
+        if (wpTax === "auteur") authorCount++;
+      }
+      totalPages = data.length === 50 ? page + 1 : page;
+      await setSyncState(env, `terms_page_${wpTax}`, String(page));
+      page++;
     }
+    await setSyncState(env, "terms_index", String(i + 1));
   }
 
-  await env.KV.put("last_sync_at", new Date().toISOString());
-  return { books: bookCount, authors: authorCount };
+  await setSyncState(env, "terms_index", "0");
+  for (const [wpTax] of taxonomies) {
+    await setSyncState(env, `terms_page_${wpTax}`, "1");
+  }
+
+  return { taxonomies: taxonomies.map(([k]) => k), authors: authorCount, completed: true };
 }
 
 async function processBookBatch(env: Env, posts: WpPost[]) {
@@ -373,11 +419,11 @@ async function updateRelationships(env: Env, post: WpPost) {
   }
 }
 
-async function upsertTerm(env: Env, term: WpTerm, wpTax: string) {
+async function upsertTerm(env: Env, term: WpTerm, wpTax: string, fetchPortrait = true) {
   const db = env.DB;
   const table = TAXONOMY_MAP[wpTax];
   let portrait = { url: null as string | null, alt: null as string | null };
-  if (wpTax === "auteur") {
+  if (wpTax === "auteur" && fetchPortrait) {
     const p = await fetchAuthorPortrait(normalizeSlug(term.slug), term.name);
     if (p) portrait = { url: p.url, alt: p.alt };
   }
@@ -398,17 +444,49 @@ async function proxyWpRequest(request: IRequest, env: Env): Promise<Response> {
     if (k !== "refresh") params[k] = v;
   });
 
-  const data = await fetchFromWP(env, wpPath, params);
-  return jsonResponse(data);
+  const wpUrl = new URL(`${env.WP_API_BASE}${wpPath}`);
+  for (const [k, v] of Object.entries(params)) wpUrl.searchParams.set(k, v);
+  const resp = await fetch(wpUrl.toString(), { headers: { accept: "application/json" } });
+  if (!resp.ok) throw new Error(`WP API ${resp.status} ${wpUrl.toString()}`);
+  const data = await resp.json();
+  const extraHeaders: Record<string, string> = {};
+  for (const h of ["x-wp-total", "x-wp-totalpages"]) {
+    const val = resp.headers.get(h);
+    if (val) extraHeaders[h] = val;
+  }
+  return jsonResponse(data, 200, extraHeaders);
 }
 
 async function healthCheck(env: Env): Promise<Response> {
   try {
     const result = await env.DB.prepare("SELECT COUNT(*) as books FROM books").first<{ books: number }>();
     const lastSync = await env.KV.get("last_sync_at");
-    return jsonResponse({ status: "ok", books: result?.books ?? 0, last_sync_at: lastSync });
+    const booksPage = await getSyncState(env, "books_page", "1");
+    const termsIndex = await getSyncState(env, "terms_index", "0");
+    return jsonResponse({
+      status: "ok",
+      books: result?.books ?? 0,
+      last_sync_at: lastSync,
+      sync_state: { books_page: Number(booksPage), terms_index: Number(termsIndex) },
+    });
   } catch (e) {
     return jsonResponse({ status: "error", error: String(e) }, 500);
+  }
+}
+
+async function runScheduledSync(env: Env) {
+  // Process up to 20 book pages per scheduled run to stay within Worker limits.
+  let page = Math.max(1, Number(await getSyncState(env, "books_page", "1")));
+  let remaining = 20;
+  while (remaining-- > 0) {
+    const result = await syncDatabase(env, page);
+    if (!result.has_more) {
+      await setSyncState(env, "books_page", "1");
+      await env.KV.put("last_sync_at", new Date().toISOString());
+      break;
+    }
+    page = page + 1;
+    await setSyncState(env, "books_page", String(page));
   }
 }
 
@@ -421,13 +499,40 @@ export default {
       if (!auth.startsWith("Bearer ") || auth.slice(7) !== env.SYNC_SECRET) {
         return jsonResponse({ error: "unauthorized" }, 401);
       }
-      const since = new URL(req.url).searchParams.get("since") || undefined;
-      const result = await syncDatabase(env, since);
+      const url = new URL(req.url);
+      const mode = url.searchParams.get("mode") || "books";
+      const since = url.searchParams.get("since") || undefined;
+
+      if (mode === "terms") {
+        const resumeTerms = url.searchParams.get("resume") === "true";
+        const result = await syncAllTerms(env, resumeTerms);
+        return jsonResponse({ ok: true, mode: "terms", ...result });
+      }
+
+      const resume = url.searchParams.get("resume") === "true";
+      const full = url.searchParams.get("full") === "true";
+      if (full) {
+        await setSyncState(env, "books_page", "1");
+        await setSyncState(env, "terms_index", "0");
+      }
+      const page = resume
+        ? Math.max(1, Number(await getSyncState(env, "books_page", "1")))
+        : Math.max(1, Number(url.searchParams.get("page") || "1"));
+      const result = await syncDatabase(env, page, since);
+      if (result.has_more) {
+        await setSyncState(env, "books_page", String(page + 1));
+      } else {
+        await setSyncState(env, "books_page", "1");
+        await env.KV.put("last_sync_at", new Date().toISOString());
+      }
       return jsonResponse({ ok: true, ...result });
     });
     router.get("/wp/*", async (req) => proxyWpRequest(req, env));
     router.all("*", () => jsonResponse({ error: "not found" }, 404));
 
-    return router.handle(request).catch((e: Error) => jsonResponse({ error: e.message }, 500));
+    return router.fetch(request).catch((e: Error) => jsonResponse({ error: e.message }, 500));
+  },
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runScheduledSync(env));
   },
 };
