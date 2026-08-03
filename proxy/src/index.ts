@@ -489,6 +489,10 @@ async function healthCheck(env: Env): Promise<Response> {
 }
 
 async function syncMissingMp3(env: Env, batchSize = 2): Promise<{ processed: number; remaining: number }> {
+  if (!env.B2_APPLICATION_KEY_ID || !env.B2_APPLICATION_KEY) {
+    const remainingRow = await env.DB.prepare("SELECT COUNT(*) as n FROM tracks WHERE b2_url IS NULL AND url LIKE 'http%'").first<{ n: number }>();
+    return { processed: 0, remaining: remainingRow?.n ?? 0 };
+  }
   const rows = await env.DB.prepare(
     `SELECT t.id, t.url FROM tracks t WHERE t.b2_url IS NULL AND t.url LIKE 'http%' LIMIT ?`
   ).bind(batchSize).all<{ id: number; url: string }>();
