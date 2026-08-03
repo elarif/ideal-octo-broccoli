@@ -539,6 +539,20 @@ export default {
       }
       return jsonResponse({ ok: true, ...result });
     });
+    router.post("/admin/tracks/:id", async (req) => {
+      const auth = req.headers.get("authorization") || "";
+      if (!auth.startsWith("Bearer ") || auth.slice(7) !== env.SYNC_SECRET) {
+        return jsonResponse({ error: "unauthorized" }, 401);
+      }
+      const trackId = Number(req.params.id);
+      if (!Number.isFinite(trackId)) return jsonResponse({ error: "invalid id" }, 400);
+      const body = await req.json() as { b2_url?: string };
+      if (!body.b2_url || !body.b2_url.startsWith("http")) {
+        return jsonResponse({ error: "invalid b2_url" }, 400);
+      }
+      await env.DB.prepare("UPDATE tracks SET b2_url = ? WHERE id = ?").bind(body.b2_url, trackId).run();
+      return jsonResponse({ ok: true });
+    });
     router.get("/wp/*", async (req) => proxyWpRequest(req, env));
     router.get("/api/tracks", async (req) => {
       const url = new URL(req.url);
