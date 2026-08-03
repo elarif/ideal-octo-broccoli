@@ -20,6 +20,9 @@ importers:
       itty-router:
         specifier: ^5.0.24
         version: 5.0.24
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
       wrangler:
         specifier: ^3.62.0
         version: 3.114.17(@cloudflare/workers-types@4.20260702.1)
