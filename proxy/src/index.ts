@@ -534,7 +534,6 @@ async function syncMissingMp3(env: Env, batchSize = 2): Promise<{ processed: num
 }
 
 async function runScheduledSync(env: Env) {
-  // Process up to 20 book pages per scheduled run to stay within Worker limits.
   let page = Math.max(1, Number(await getSyncState(env, "books_page", "1")));
   let remaining = 20;
   while (remaining-- > 0) {
@@ -547,6 +546,8 @@ async function runScheduledSync(env: Env) {
     page = page + 1;
     await setSyncState(env, "books_page", String(page));
   }
+  // After book sync, lazy-fill up to 20 new MP3s to B2.
+  await syncMissingMp3(env, 20);
 }
 
 export default {
