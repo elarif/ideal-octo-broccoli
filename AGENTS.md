@@ -70,11 +70,19 @@ curl -X POST "https://litteratureaudio-cache.elarif-ahamada.workers.dev/admin/sy
 
 For incremental sync since the last run, the weekly schedule calls this automatically.
 
-## Phase 2: Media Storage
+## Phase 2: Media Storage (Deployed)
 
 - Backblaze B2 bucket `litteratureaudio-media` (region `eu-central-003`).
-- Served via Cloudflare CDN at `media.litteratureaudio.pages.dev`.
+- Served via Cloudflare CDN at `media.litteratureaudio.pages.dev` (free egress via Bandwidth Alliance).
 - MP3 popular/recent content mirrored from WordPress to B2.
+- Bulk mirror: `pnpm mirror:mp3` in `proxy/` or GitHub Actions `mirror-mp3` job.
+- Incremental: Worker `/admin/sync/mp3` (weekly schedule + on-demand).
+- Worker endpoints:
+  - `GET /api/tracks?missing_b2=true&limit=N` — list tracks needing mirror.
+  - `POST /admin/tracks/:id` — update `b2_url` (auth: SYNC_SECRET).
+  - `POST /admin/sync/mp3` — lazy-fill up to 20 tracks (auth: SYNC_SECRET).
+- D1 `tracks.b2_url` stores the CDN URL once mirrored.
+- Astro build prefers `b2_url` over WordPress `source_url` in book JSON.
 
 ## Cost Estimates
 
