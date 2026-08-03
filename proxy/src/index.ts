@@ -450,6 +450,18 @@ async function upsertTerm(env: Env, term: WpTerm, wpTax: string, fetchPortrait =
     .run();
 }
 
+async function enrichWithB2Url(env: Env, media: Array<{ id: number; [k: string]: unknown }>): Promise<void> {
+  if (!media.length) return;
+  const ids = media.map((m) => m.id);
+  const placeholders = ids.map(() => "?").join(",");
+  const rows = await env.DB.prepare(`SELECT id, b2_url FROM tracks WHERE id IN (${placeholders}) AND b2_url IS NOT NULL`).bind(...ids).all<{ id: number; b2_url: string }>();
+  const b2Map = new Map((rows.results || []).map((r) => [r.id, r.b2_url]));
+  for (const m of media) {
+    const b2 = b2Map.get(m.id);
+    if (b2) (m as Record<string, unknown>).b2_url = b2;
+  }
+}
+
 async function proxyWpRequest(request: IRequest, env: Env): Promise<Response> {
   const url = new URL(request.url);
   const wpPath = url.pathname.replace("/wp", "/wp-json");
@@ -463,6 +475,9 @@ async function proxyWpRequest(request: IRequest, env: Env): Promise<Response> {
   const resp = await fetch(wpUrl.toString(), { headers: { accept: "application/json" } });
   if (!resp.ok) throw new Error(`WP API ${resp.status} ${wpUrl.toString()}`);
   const data = await resp.json();
+  if (Array.isArray(data) && (wpPath.includes("/wp/v2/media") || wpPath.includes("/wp/v2/station"))) {
+    await enrichWithB2Url(env, data as Array<{ id: number; [k: string]: unknown }>);
+  }
   const extraHeaders: Record<string, string> = {};
   for (const h of ["x-wp-total", "x-wp-totalpages"]) {
     const val = resp.headers.get(h);
