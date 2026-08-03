@@ -136,7 +136,7 @@ async function main() {
           slug: normalizeSlug(m.slug),
           title: decodeHtml(m.title.rendered),
           order: m.media_details?.menu_order ?? i,
-          url: m.source_url || m.meta?.download_url || "",
+          url: m.b2_url || m.source_url || m.meta?.download_url || "",
           duration: m.media_details?.length ?? msToSec(m.meta?.duration),
           size: m.media_details?.filesize ?? 0,
         }))

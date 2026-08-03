@@ -46,6 +46,7 @@ export interface WpMedia {
   title: { rendered: string };
   mime_type: string;
   source_url: string;
+  b2_url?: string;
   post?: number;
   media_details?: { filesize?: number; length?: number; menu_order?: number };
   meta?: {
