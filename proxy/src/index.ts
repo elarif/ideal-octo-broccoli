@@ -540,6 +540,36 @@ export default {
       return jsonResponse({ ok: true, ...result });
     });
     router.get("/wp/*", async (req) => proxyWpRequest(req, env));
+    router.get("/api/tracks", async (req) => {
+      const url = new URL(req.url);
+      const missingB2 = url.searchParams.get("missing_b2") === "true";
+      const limit = Math.min(500, Number(url.searchParams.get("limit") || "100"));
+      if (!missingB2) return jsonResponse({ error: "only missing_b2=true supported" }, 400);
+
+      const rows = await env.DB.prepare(
+        `SELECT t.id, t.book_id, t.slug, t.title, t.url, t."order", b.slug as book_slug
+         FROM tracks t JOIN books b ON t.book_id = b.id
+         WHERE t.b2_url IS NULL AND t.url LIKE 'http%'
+         ORDER BY t.book_id LIMIT ?`
+      ).bind(limit).all<{ id: number; book_id: number; slug: string; title: string; url: string; order: number; book_slug: string }>();
+
+      const tracks = await Promise.all((rows.results || []).map(async (t) => {
+        const voice = await env.DB.prepare(
+          `SELECT v.slug FROM book_voices bv JOIN voices v ON bv.voice_id = v.id WHERE bv.book_id = ? LIMIT 1`
+        ).bind(t.book_id).first<{ slug: string }>();
+        return {
+          id: t.id,
+          book_id: t.book_id,
+          book_slug: t.book_slug,
+          voice_slug: voice?.slug || "unknown",
+          order: t.order,
+          track_slug: normalizeSlug(t.slug),
+          url: t.url,
+        };
+      }));
+
+      return jsonResponse({ tracks });
+    });
     router.all("*", () => jsonResponse({ error: "not found" }, 404));
 
     return router.fetch(request).catch((e: Error) => jsonResponse({ error: e.message }, 500));
