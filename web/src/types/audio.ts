@@ -21,6 +21,8 @@ export interface AudioState {
   currentTime: number;
   duration: number;
   volume: number;
+  playbackRate: number;
+  isQueueOpen: boolean;
 }
 
 export interface AudioActions {
@@ -30,6 +32,9 @@ export interface AudioActions {
   playPrevious: () => void;
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
+  setPlaybackRate: (rate: number) => void;
+  toggleQueue: () => void;
+  closeQueue: () => void;
   close: () => void;
 }
 
