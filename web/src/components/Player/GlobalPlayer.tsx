@@ -1,6 +1,7 @@
-import { Pause, Play, SkipBack, SkipForward, Volume2, X, Check, Download } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, Volume2, X, Check, Download, ListMusic } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAudio } from "./AudioProvider";
+import { QueueDrawer } from "./QueueDrawer";
 import { formatMediaTime } from "../../lib/format-media-time";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 3, 4];
@@ -44,7 +45,7 @@ function SpeedDropdown({ current, onSelect, onClose }: { current: number; onSele
 }
 
 export function GlobalPlayer() {
-  const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, close } = useAudio();
+  const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, isQueueOpen, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, toggleQueue, close } = useAudio();
   const [speedOpen, setSpeedOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -153,8 +154,19 @@ export function GlobalPlayer() {
           <Download size={20} className={downloading ? "animate-pulse" : ""} />
         </button>
 
+        <button
+          type="button"
+          onClick={toggleQueue}
+          disabled={!currentBook}
+          aria-label="File d'attente"
+          className="p-1 text-gray-600 hover:text-primary disabled:opacity-50"
+        >
+          <ListMusic size={20} />
+        </button>
+
         <button onClick={close} aria-label="Fermer le lecteur"><X size={20} /></button>
       </div>
+      <QueueDrawer />
     </div>
   );
 }
