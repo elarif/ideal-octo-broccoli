@@ -1,4 +1,4 @@
-import { Pause, Play, SkipBack, SkipForward, Volume2, X, Check } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, Volume2, X, Check, Download } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAudio } from "./AudioProvider";
 import { formatMediaTime } from "../../lib/format-media-time";
@@ -46,6 +46,30 @@ function SpeedDropdown({ current, onSelect, onClose }: { current: number; onSele
 export function GlobalPlayer() {
   const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, close } = useAudio();
   const [speedOpen, setSpeedOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  async function downloadCurrentTrack() {
+    if (!track || downloading) return;
+    setDownloading(true);
+    try {
+      const resp = await fetch(track.url);
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const order = String(currentTrackIndex + 1).padStart(2, "0");
+      a.download = `${order}_${track.slug || track.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Échec du téléchargement.");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   if (!currentBook) return <div className="global-player-placeholder hidden" aria-hidden="true" />;
 
@@ -118,6 +142,16 @@ export function GlobalPlayer() {
             />
           )}
         </div>
+
+        <button
+          type="button"
+          onClick={downloadCurrentTrack}
+          disabled={!track || downloading}
+          aria-label="Télécharger cette piste"
+          className="p-1 text-gray-600 hover:text-primary disabled:opacity-50"
+        >
+          <Download size={20} className={downloading ? "animate-pulse" : ""} />
+        </button>
 
         <button onClick={close} aria-label="Fermer le lecteur"><X size={20} /></button>
       </div>
