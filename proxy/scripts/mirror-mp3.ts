@@ -6,7 +6,7 @@ const B2_KEY_ID = process.env.B2_APPLICATION_KEY_ID || "";
 const B2_KEY = process.env.B2_APPLICATION_KEY || "";
 const B2_REGION = process.env.B2_BUCKET_REGION || "eu-central-003";
 const B2_BUCKET = "litteratureaudio-media";
-const CDN_BASE = "https://media.litteratureaudio.pages.dev";
+const CDN_BASE = "https://f003.backblazeb2.com";
 const BATCH_SIZE = 500;
 
 function normalizeSlug(slug: string): string {

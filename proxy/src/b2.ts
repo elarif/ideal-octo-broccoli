@@ -3,7 +3,7 @@ import type { Env } from "./index";
 
 const B2_ENDPOINT = "https://s3.eu-central-003.backblazeb2.com";
 const B2_BUCKET = "litteratureaudio-media";
-const CDN_BASE = "https://media.litteratureaudio.pages.dev";
+const CDN_BASE = "https://f003.backblazeb2.com";
 
 export function b2Client(env: Env): S3Client {
   return new S3Client({

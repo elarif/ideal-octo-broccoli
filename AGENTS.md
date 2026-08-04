@@ -73,7 +73,7 @@ For incremental sync since the last run, the weekly schedule calls this automati
 ## Phase 2: Media Storage (Deployed)
 
 - Backblaze B2 bucket `litteratureaudio-media` (region `eu-central-003`).
-- Served via Cloudflare CDN at `media.litteratureaudio.pages.dev` (free egress via Bandwidth Alliance).
+- Served via Backblaze B2 native endpoint `https://f003.backblazeb2.com` (free egress up to 1GB/day, then $0.01/GB; Bandwidth Alliance free unlimited egress requires a Cloudflare CNAME on a registered domain — not configured yet since `litteratureaudio.pages.dev` is a Pages-managed subdomain with no custom DNS zone).
 - MP3 popular/recent content mirrored from WordPress to B2.
 - Bulk mirror: `pnpm mirror:mp3` in `proxy/` or GitHub Actions `mirror-mp3` job.
 - Incremental: Worker `/admin/sync/mp3` (weekly schedule + on-demand).
