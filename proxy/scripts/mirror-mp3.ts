@@ -9,6 +9,7 @@ const B2_BUCKET = "litteratureaudio-media";
 const CDN_BASE = "https://f003.backblazeb2.com";
 const BATCH_SIZE = 500;
 const MAX_RUNTIME_MS = Number(process.env.MAX_RUNTIME_MS || "14400000"); // 4h default
+const MAX_UPLOADS = Number(process.env.MAX_UPLOADS || "0"); // 0 = unlimited
 
 function normalizeSlug(slug: string): string {
   return slug
@@ -54,6 +55,10 @@ async function main() {
     const tracks = (data as { tracks: Array<{ id: number; book_slug: string; voice_slug: string; order: number; track_slug: string; url: string }> }).tracks;
     if (!tracks.length) {
       console.log(`✓ No more tracks to mirror. Total uploaded: ${totalUploaded}`);
+      break;
+    }
+    if (MAX_UPLOADS > 0 && totalUploaded >= MAX_UPLOADS) {
+      console.log(`✓ Upload cap reached (${MAX_UPLOADS}). Total uploaded: ${totalUploaded}`);
       break;
     }
     console.log(`Batch ${batch}: ${tracks.length} tracks to upload`);
