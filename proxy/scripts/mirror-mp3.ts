@@ -8,6 +8,7 @@ const B2_REGION = process.env.B2_BUCKET_REGION || "eu-central-003";
 const B2_BUCKET = "litteratureaudio-media";
 const CDN_BASE = "https://f003.backblazeb2.com";
 const BATCH_SIZE = 500;
+const MAX_RUNTIME_MS = Number(process.env.MAX_RUNTIME_MS || "14400000"); // 4h default
 
 function normalizeSlug(slug: string): string {
   return slug
@@ -40,9 +41,14 @@ async function main() {
     credentials: { accessKeyId: B2_KEY_ID, secretAccessKey: B2_KEY },
   });
 
+  const startedAt = Date.now();
   let totalUploaded = 0;
   let batch = 0;
   while (true) {
+    if (Date.now() - startedAt > MAX_RUNTIME_MS) {
+      console.log(`⏱ Runtime limit reached (${Math.round((Date.now() - startedAt) / 1000)}s). Uploaded ${totalUploaded} tracks. Resumes next run.`);
+      break;
+    }
     batch++;
     const data = await fetchJson(`${WORKER_URL}/api/tracks?missing_b2=true&limit=${BATCH_SIZE}`);
     const tracks = (data as { tracks: Array<{ id: number; book_slug: string; voice_slug: string; order: number; track_slug: string; url: string }> }).tracks;

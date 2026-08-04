@@ -7,7 +7,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * 0" # Weekly sync every Sunday at 03:00 UTC
+    - cron: "0 2 * * *" # Daily mirror at 02:00 UTC, runs up to 4h
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -90,7 +90,8 @@ jobs:
   mirror-mp3:
     needs: deploy-worker
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    timeout-minutes: 250 # ~4h10m, stops before GA 6h hard limit
     defaults:
       run:
         working-directory: proxy
@@ -119,3 +120,4 @@ jobs:
           B2_APPLICATION_KEY_ID: ${{ secrets.B2_APPLICATION_KEY_ID }}
           B2_APPLICATION_KEY: ${{ secrets.B2_APPLICATION_KEY }}
           B2_BUCKET_REGION: eu-central-003
+          MAX_RUNTIME_MS: "14400000" # 4h, stops cleanly before GA 6h limit
