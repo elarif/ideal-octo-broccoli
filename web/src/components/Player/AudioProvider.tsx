@@ -20,6 +20,14 @@ declare global {
   }
 }
 
+const SPEED_KEY = "la-player-speed";
+
+function loadInitialSpeed(): number {
+  if (typeof window === "undefined") return 1;
+  const stored = Number(localStorage.getItem(SPEED_KEY));
+  return Number.isFinite(stored) && stored >= 0.5 && stored <= 4 ? stored : 1;
+}
+
 const initialState: AudioState = {
   isPlaying: false,
   currentBook: null,
@@ -27,6 +35,8 @@ const initialState: AudioState = {
   currentTime: 0,
   duration: 0,
   volume: 1,
+  playbackRate: loadInitialSpeed(),
+  isQueueOpen: false,
 };
 
 function createStore(): InternalAudioStore {
@@ -48,6 +58,8 @@ function createStore(): InternalAudioStore {
         currentTime: 0,
         duration: 0,
         volume: self._state.volume,
+        playbackRate: self._state.playbackRate,
+        isQueueOpen: self._state.isQueueOpen,
       };
       self._emit();
       const audio = self._ensureAudio(track.url);
@@ -114,6 +126,26 @@ function createStore(): InternalAudioStore {
       self._emit();
     },
 
+    setPlaybackRate(rate: number) {
+      const r = Math.max(0.5, Math.min(4, rate));
+      if (self._audioEl) self._audioEl.playbackRate = r;
+      self._state = { ...self._state, playbackRate: r };
+      if (typeof window !== "undefined") localStorage.setItem(SPEED_KEY, String(r));
+      self._emit();
+    },
+
+    toggleQueue() {
+      self._state = { ...self._state, isQueueOpen: !self._state.isQueueOpen };
+      self._emit();
+    },
+
+    closeQueue() {
+      if (self._state.isQueueOpen) {
+        self._state = { ...self._state, isQueueOpen: false };
+        self._emit();
+      }
+    },
+
     close() {
       self._audioEl?.pause();
       self._audioEl = null;
@@ -135,6 +167,7 @@ function createStore(): InternalAudioStore {
         self._audioEl = null;
       }
       const audio = new Audio(url);
+      audio.playbackRate = self._state.playbackRate;
       audio.preload = "auto";
       self._audioEl = audio;
 
