@@ -227,7 +227,7 @@ async function* paginatePosts(env: Env, since?: string): AsyncGenerator<WpPost> 
   let page = 1;
   let totalPages = 1;
   while (page <= totalPages) {
-    const params: Record<string, string> = { per_page: "100", page: String(page), embed: "true" };
+    const params: Record<string, string> = { per_page: "100", page: String(page), _embed: "true" };
     if (since) params.after = since;
     const data = await fetchFromWP(env, "/wp-json/wp/v2/posts", params) as WpPost[];
     if (!Array.isArray(data) || data.length === 0) break;
@@ -286,7 +286,7 @@ export async function getTrackContext(env: Env, trackId: number): Promise<{ book
 const SYNC_PAGE_SIZE = 5;
 
 async function syncDatabase(env: Env, page: number, since?: string): Promise<{ page: number; processed: number; has_more: boolean; total_books: number; total_authors: number }> {
-  const params: Record<string, string> = { per_page: String(SYNC_PAGE_SIZE), page: String(page), embed: "true" };
+  const params: Record<string, string> = { per_page: String(SYNC_PAGE_SIZE), page: String(page), _embed: "true" };
   if (since) params.after = since;
   const posts = await fetchFromWP(env, "/wp-json/wp/v2/posts", params) as WpPost[];
   if (!Array.isArray(posts) || posts.length === 0) {
@@ -304,6 +304,28 @@ async function syncDatabase(env: Env, page: number, since?: string): Promise<{ p
 
   const totals = await env.DB.prepare("SELECT (SELECT COUNT(*) FROM books) as books, (SELECT COUNT(*) FROM authors) as authors").first<{ books: number; authors: number }>();
   return { page, processed: posts.length, has_more: hasMore, total_books: totals?.books ?? 0, total_authors: totals?.authors ?? 0 };
+}
+
+async function syncSingleTaxonomyPage(env: Env, wpTax: string): Promise<{ page: number; processed: number; has_more: boolean; total: number }> {
+  const startPage = Number(await getSyncState(env, `terms_page_${wpTax}`, "1"));
+  const data = await fetchFromWP(env, `/wp-json/wp/v2/${wpTax}`, {
+    per_page: "50",
+    page: String(startPage),
+    hide_empty: "true",
+    _fields: "id,slug,name,description,count",
+  }) as WpTerm[];
+  if (!Array.isArray(data) || data.length === 0) {
+    await setSyncState(env, `terms_page_${wpTax}`, "1");
+    const totalRow = await env.DB.prepare(`SELECT COUNT(*) as n FROM ${TAXONOMY_MAP[wpTax]}`).first<{ n: number }>();
+    return { page: startPage, processed: 0, has_more: false, total: totalRow?.n ?? 0 };
+  }
+  for (const term of data) {
+    await upsertTerm(env, term, wpTax, false);
+  }
+  const hasMore = data.length === 50;
+  await setSyncState(env, `terms_page_${wpTax}`, String(hasMore ? startPage + 1 : 1));
+  const totalRow = await env.DB.prepare(`SELECT COUNT(*) as n FROM ${TAXONOMY_MAP[wpTax]}`).first<{ n: number }>();
+  return { page: startPage, processed: data.length, has_more: hasMore, total: totalRow?.n ?? 0 };
 }
 
 async function syncAllTerms(env: Env, resume = false): Promise<{ taxonomies: string[]; authors: number; completed: boolean }> {
@@ -325,7 +347,7 @@ async function syncAllTerms(env: Env, resume = false): Promise<{ taxonomies: str
       }) as WpTerm[];
       if (!Array.isArray(data) || data.length === 0) break;
       for (const term of data) {
-        await upsertTerm(env, term, wpTax);
+        await upsertTerm(env, term, wpTax, false);
         if (wpTax === "auteur") authorCount++;
       }
       totalPages = data.length === 50 ? page + 1 : page;
@@ -424,10 +446,18 @@ async function updateRelationships(env: Env, post: WpPost) {
     book_regions: termMap(post, "region"),
     book_licences: termMap(post, "licence"),
   };
+  const REL_COL: Record<string, string> = {
+    book_authors: "author_id",
+    book_voices: "voice_id",
+    book_genres: "genre_id",
+    book_periods: "period_id",
+    book_regions: "region_id",
+    book_licences: "licence_id",
+  };
   for (const [table, terms] of Object.entries(rels)) {
     await db.prepare(`DELETE FROM ${table} WHERE book_id = ?`).bind(bookId).run();
+    const col = REL_COL[table];
     for (const term of terms) {
-      const col = table.replace("book_", "") + "_id";
       await db.prepare(`INSERT OR IGNORE INTO ${table} (book_id, ${col}) VALUES (?, ?)`).bind(bookId, term.id).run();
     }
   }
@@ -436,18 +466,33 @@ async function updateRelationships(env: Env, post: WpPost) {
 async function upsertTerm(env: Env, term: WpTerm, wpTax: string, fetchPortrait = true) {
   const db = env.DB;
   const table = TAXONOMY_MAP[wpTax];
-  let portrait = { url: null as string | null, alt: null as string | null };
-  if (wpTax === "auteur" && fetchPortrait) {
-    const p = await fetchAuthorPortrait(normalizeSlug(term.slug), term.name);
-    if (p) portrait = { url: p.url, alt: p.alt };
+  const slug = normalizeSlug(term.slug);
+  const name = htmlDecode(term.name);
+  const count = term.count || 0;
+  const description = term.description || null;
+
+  if (wpTax === "auteur") {
+    let portrait = { url: null as string | null, alt: null as string | null };
+    if (fetchPortrait) {
+      const p = await fetchAuthorPortrait(slug, name);
+      if (p) portrait = { url: p.url, alt: p.alt };
+    }
+    await db
+      .prepare(
+        `INSERT INTO ${table} (id, slug, name, description, count, portrait_url, portrait_alt) VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET slug=excluded.slug, name=excluded.name, description=excluded.description, count=excluded.count, portrait_url=excluded.portrait_url, portrait_alt=excluded.portrait_alt`
+      )
+      .bind(term.id, slug, name, description, count, portrait.url, portrait.alt)
+      .run();
+  } else {
+    await db
+      .prepare(
+        `INSERT INTO ${table} (id, slug, name, count) VALUES (?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET slug=excluded.slug, name=excluded.name, count=excluded.count`
+      )
+      .bind(term.id, slug, name, count)
+      .run();
   }
-  await db
-    .prepare(
-      `INSERT INTO ${table} (id, slug, name, description, count, portrait_url, portrait_alt) VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(id) DO UPDATE SET slug=excluded.slug, name=excluded.name, description=excluded.description, count=excluded.count, portrait_url=excluded.portrait_url, portrait_alt=excluded.portrait_alt`
-    )
-    .bind(term.id, normalizeSlug(term.slug), htmlDecode(term.name), term.description || null, term.count || 0, portrait.url, portrait.alt)
-    .run();
 }
 
 async function enrichWithB2Url(env: Env, media: Array<{ id: number; [k: string]: unknown }>): Promise<void> {
@@ -564,6 +609,12 @@ export default {
       const since = url.searchParams.get("since") || undefined;
 
       if (mode === "terms") {
+        const singleTaxonomy = url.searchParams.get("taxonomy");
+        if (singleTaxonomy && TAXONOMY_MAP[singleTaxonomy]) {
+          // Sync one taxonomy (one page) to fit Worker subrequest limit
+          const result = await syncSingleTaxonomyPage(env, singleTaxonomy);
+          return jsonResponse({ ok: true, mode: "terms", taxonomy: singleTaxonomy, ...result });
+        }
         const resumeTerms = url.searchParams.get("resume") === "true";
         const result = await syncAllTerms(env, resumeTerms);
         return jsonResponse({ ok: true, mode: "terms", ...result });
