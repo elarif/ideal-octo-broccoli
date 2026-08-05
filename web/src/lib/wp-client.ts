@@ -141,7 +141,7 @@ class WpClient {
     const { data } = await this.req("/wp-json/wp/v2/station", {
       include: ids.join(","),
       perPage: 100,
-      _fields: "id,slug,title,meta",
+      _fields: "id,slug,title,meta,b2_url",
     });
     return data as WpStation[];
   }
@@ -151,6 +151,7 @@ export interface WpStation {
   id: number;
   slug: string;
   title: { rendered: string };
+  b2_url?: string;
   meta?: {
     duration?: number;
     stream?: string;

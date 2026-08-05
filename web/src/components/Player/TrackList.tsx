@@ -25,7 +25,7 @@ export function TrackList({ book }: Props) {
               {isCurrent && isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
             </button>
             <span className="flex-1">{track.title}</span>
-            <span className="text-sm text-gray-600">{formatMediaTime(track.duration)}</span>
+            {track.duration > 0 && <span className="text-sm text-gray-600">{formatMediaTime(track.duration)}</span>}
             <a href={track.url} download className="p-2 text-primary hover:text-primary/80" aria-label="Télécharger">
               <Download size={18} />
             </a>

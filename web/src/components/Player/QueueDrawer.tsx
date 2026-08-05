@@ -51,7 +51,7 @@ export function QueueDrawer() {
                   <span className="w-6 text-sm text-gray-500 tabular-nums text-right">{String(index + 1).padStart(2, "0")}</span>
                   {isCurrent && (isPlaying ? <Volume2 size={16} className="text-primary flex-shrink-0 animate-pulse" /> : <Pause size={16} className="text-primary flex-shrink-0" />)}
                   <span className={`flex-1 truncate ${isCurrent ? "font-medium" : ""}`}>{track.title}</span>
-                  <span className="text-sm text-gray-500 tabular-nums">{formatMediaTime(track.duration)}</span>
+                  {track.duration > 0 && <span className="text-sm text-gray-500 tabular-nums">{formatMediaTime(track.duration)}</span>}
                 </button>
               </li>
             );

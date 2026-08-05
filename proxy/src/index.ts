@@ -680,7 +680,7 @@ export default {
          LEFT JOIN voices v ON v.id = bv.voice_id
          WHERE t.b2_url IS NULL AND t.url LIKE 'http%'
          GROUP BY t.id
-         ORDER BY t.book_id, t.id
+          ORDER BY t.book_id DESC, t.id
          LIMIT ?`
       ).bind(limit).all<{ id: number; book_id: number; slug: string; url: string; order: number; book_slug: string; voice_slug: string }>();
 

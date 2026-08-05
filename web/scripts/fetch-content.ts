@@ -190,7 +190,7 @@ async function fetchTracksForPost(post: WpPost): Promise<WpMedia[]> {
       return ids.map((id, i) => {
         const s = byId.get(id);
         const itemLabel = items[i]?.replace(/^\s*\d+\s*:\s*/, "") || `Piste ${i + 1}`;
-        const url = s?.meta?.stream || s?.meta?.download_url || "";
+        const url = s?.b2_url || s?.meta?.stream || s?.meta?.download_url || "";
         const duration = msToSec(s?.meta?.duration);
         return {
           id,
@@ -201,7 +201,7 @@ async function fetchTracksForPost(post: WpPost): Promise<WpMedia[]> {
           meta: { duration: s?.meta?.duration || 0, download_url: s?.meta?.download_url || "" },
           media_details: { length: duration, filesize: 0, menu_order: i },
         } as WpMedia;
-      }).filter((m) => (m.source_url || m.meta?.download_url || "").startsWith("http"));
+      }).filter((m) => (m.source_url || m.b2_url || m.meta?.download_url || "").startsWith("http"));
     }
   }
 
