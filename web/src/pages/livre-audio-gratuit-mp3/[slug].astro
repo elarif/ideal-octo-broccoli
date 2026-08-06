@@ -50,6 +50,20 @@ async function loadAuthorPortrait(slug: string) {
   return entry?.data.portrait;
 }
 const authorPortrait = authorSlug ? await loadAuthorPortrait(authorSlug) : undefined;
+
+const isSelection = d.tracks.length === 0 && d.content && d.content.includes("block-loop");
+let selectionSlugs: string[] = [];
+let descriptionHtml = d.content;
+if (isSelection) {
+  const slugSet = new Set<string>();
+  const matches = d.content.matchAll(/\/livre-audio-gratuit-mp3\/([a-z0-9-]+)\.html/g);
+  for (const m of matches) slugSet.add(m[1]);
+  selectionSlugs = [...slugSet];
+  descriptionHtml = d.content.split('<div style="" class="wp-block-loop')[0];
+}
+const selectionBooks = isSelection
+  ? allBooks.filter((b) => selectionSlugs.includes(b.data.slug))
+  : [];
 ---
 
 <Base
@@ -137,9 +151,28 @@ const authorPortrait = authorSlug ? await loadAuthorPortrait(authorSlug) : undef
       </Section>
     )}
 
-    {d.content && (
+    {isSelection && selectionBooks.length > 0 && (
+      <Section title="Livres audio de cette sélection">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {selectionBooks.map((b) => <CompactBookCard book={b} />)}
+        </div>
+      </Section>
+    )}
+
+    {isSelection && selectionSlugs.length > selectionBooks.length && (
+      <Section title="Autres livres de cette sélection">
+        <p class="text-gray-600 text-sm mb-3">Ces livres ne sont pas encore disponibles dans notre catalogue. Retrouvez-les sur le site original :</p>
+        <ul class="space-y-1">
+          {selectionSlugs.filter((s) => !selectionBooks.some((b) => b.data.slug === s)).map((s) => (
+            <li><a href={`https://www.litteratureaudio.com/livre-audio-gratuit-mp3/${s}.html`} class="text-primary hover:underline" rel="noopener">{s.replace(/-/g, " ")}</a></li>
+          ))}
+        </ul>
+      </Section>
+    )}
+
+    {descriptionHtml && (
       <Section title="Description">
-        <div class="prose max-w-none" set:html={d.content} />
+        <div class="prose max-w-none" set:html={descriptionHtml} />
       </Section>
     )}
 
