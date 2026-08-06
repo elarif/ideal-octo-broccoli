@@ -1,4 +1,4 @@
-import { Pause, Play, SkipBack, SkipForward, Volume2, X, Check, Download, ListMusic } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, Volume2, X, Check, Download, ListMusic, Repeat, Repeat1 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAudio } from "./AudioProvider";
 import { QueueDrawer } from "./QueueDrawer";
@@ -45,7 +45,7 @@ function SpeedDropdown({ current, onSelect, onClose }: { current: number; onSele
 }
 
 export function GlobalPlayer() {
-  const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, isQueueOpen, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, toggleQueue, close } = useAudio();
+  const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, repeatMode, isQueueOpen, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, toggleRepeat, toggleQueue, close } = useAudio();
   const [speedOpen, setSpeedOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -95,6 +95,18 @@ export function GlobalPlayer() {
             {isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5" />}
           </button>
           <button onClick={playNext} aria-label="Suivant"><SkipForward size={20} /></button>
+          <button
+            type="button"
+            onClick={toggleRepeat}
+            aria-label="Répétition"
+            className="p-1"
+          >
+            {repeatMode === "one" ? (
+              <Repeat1 size={18} className="text-primary" />
+            ) : (
+              <Repeat size={18} className={repeatMode === "all" ? "text-primary" : "text-gray-500"} />
+            )}
+          </button>
         </div>
 
         <div className="hidden sm:flex items-center gap-2 flex-1">

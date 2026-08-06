@@ -22,6 +22,7 @@ export interface AudioState {
   duration: number;
   volume: number;
   playbackRate: number;
+  repeatMode: "off" | "one" | "all";
   isQueueOpen: boolean;
 }
 
@@ -33,6 +34,7 @@ export interface AudioActions {
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
+  toggleRepeat: () => void;
   toggleQueue: () => void;
   closeQueue: () => void;
   close: () => void;

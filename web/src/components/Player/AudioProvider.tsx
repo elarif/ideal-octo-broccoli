@@ -36,6 +36,7 @@ const initialState: AudioState = {
   duration: 0,
   volume: 1,
   playbackRate: loadInitialSpeed(),
+  repeatMode: "off",
   isQueueOpen: false,
 };
 
@@ -59,6 +60,7 @@ function createStore(): InternalAudioStore {
         duration: 0,
         volume: self._state.volume,
         playbackRate: self._state.playbackRate,
+        repeatMode: self._state.repeatMode,
         isQueueOpen: self._state.isQueueOpen,
       };
       self._emit();
@@ -81,6 +83,11 @@ function createStore(): InternalAudioStore {
     playNext() {
       const book = self._state.currentBook;
       if (!book) return;
+      if (self._state.repeatMode === "one") {
+        self._audioEl!.currentTime = 0;
+        self._audioEl!.play().catch(() => {});
+        return;
+      }
       const next = self._state.currentTrackIndex + 1;
       if (next < book.tracks.length) {
         const track = book.tracks[next];
@@ -92,6 +99,8 @@ function createStore(): InternalAudioStore {
           self._state = { ...self._state, isPlaying: false };
           self._emit();
         });
+      } else if (self._state.repeatMode === "all") {
+        self.playBook(book, 0);
       } else {
         self._state = { ...self._state, isPlaying: false };
         self._emit();
@@ -131,6 +140,13 @@ function createStore(): InternalAudioStore {
       if (self._audioEl) self._audioEl.playbackRate = r;
       self._state = { ...self._state, playbackRate: r };
       if (typeof window !== "undefined") localStorage.setItem(SPEED_KEY, String(r));
+      self._emit();
+    },
+
+    toggleRepeat() {
+      const order: AudioState["repeatMode"][] = ["off", "one", "all"];
+      const idx = order.indexOf(self._state.repeatMode);
+      self._state = { ...self._state, repeatMode: order[(idx + 1) % 3] };
       self._emit();
     },
 
