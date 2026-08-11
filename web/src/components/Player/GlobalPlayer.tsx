@@ -46,35 +46,30 @@ function SpeedDropdown({ current, onSelect, onClose }: { current: number; onSele
 
 export function GlobalPlayer() {
   const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, repeatMode, isQueueOpen, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, toggleRepeat, toggleQueue, close } = useAudio();
+  if (!currentBook) return <div className="global-player-placeholder hidden" aria-hidden="true" />;
+
+  const track = currentBook.tracks[currentTrackIndex];
   const [speedOpen, setSpeedOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
-  async function downloadCurrentTrack() {
+  function downloadCurrentTrack() {
     if (!track || downloading) return;
     setDownloading(true);
     try {
-      const resp = await fetch(track.url);
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const blob = await resp.blob();
-      const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url;
+      a.href = track.url;
       const order = String(currentTrackIndex + 1).padStart(2, "0");
       a.download = `${order}_${track.slug || track.title.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}.mp3`;
+      a.rel = "noopener";
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
     } catch {
       alert("Échec du téléchargement.");
     } finally {
       setDownloading(false);
     }
   }
-
-  if (!currentBook) return <div className="global-player-placeholder hidden" aria-hidden="true" />;
-
-  const track = currentBook.tracks[currentTrackIndex];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg p-3">
