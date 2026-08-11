@@ -46,13 +46,12 @@ function SpeedDropdown({ current, onSelect, onClose }: { current: number; onSele
 
 export function GlobalPlayer() {
   const { currentBook, currentTrackIndex, isPlaying, currentTime, duration, volume, playbackRate, repeatMode, isQueueOpen, togglePlay, playNext, playPrevious, seek, setVolume, setPlaybackRate, toggleRepeat, toggleQueue, close } = useAudio();
-  if (!currentBook) return <div className="global-player-placeholder hidden" aria-hidden="true" />;
-
-  const track = currentBook.tracks[currentTrackIndex];
   const [speedOpen, setSpeedOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
   function downloadCurrentTrack() {
+    if (!currentBook) return;
+    const track = currentBook.tracks[currentTrackIndex];
     if (!track || downloading) return;
     setDownloading(true);
     try {
@@ -70,6 +69,10 @@ export function GlobalPlayer() {
       setDownloading(false);
     }
   }
+
+  if (!currentBook) return <div className="global-player-placeholder hidden" aria-hidden="true" />;
+
+  const track = currentBook.tracks[currentTrackIndex];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t shadow-lg p-3">
