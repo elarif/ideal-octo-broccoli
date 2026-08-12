@@ -16,11 +16,14 @@ interface FilterEntry {
 
 const PAGE_SIZE = 20;
 
-function parseQueryString(): { genres: string[]; voices: string[]; authors: string[]; dureeMin: number; dureeMax: number } {
+function parseQueryString(): { genres: string[]; voices: string[]; authors: string[]; periods: string[]; regions: string[]; licences: string[]; dureeMin: number; dureeMax: number } {
   const params = new URLSearchParams(window.location.search);
   const genres = params.get("genres")?.split(",").filter(Boolean) || [];
   const voices = params.get("voix")?.split(",").filter(Boolean) || [];
   const authors = params.get("auteurs")?.split(",").filter(Boolean) || [];
+  const periods = params.get("periodes")?.split(",").filter(Boolean) || [];
+  const regions = params.get("regions")?.split(",").filter(Boolean) || [];
+  const licences = params.get("licences")?.split(",").filter(Boolean) || [];
   const duree = params.get("duree");
   let dureeMin = 0;
   let dureeMax = 0;
@@ -29,7 +32,7 @@ function parseQueryString(): { genres: string[]; voices: string[]; authors: stri
     if (!Number.isNaN(min)) dureeMin = min;
     if (!Number.isNaN(max)) dureeMax = max;
   }
-  return { genres, voices, authors, dureeMin, dureeMax };
+  return { genres, voices, authors, periods, regions, licences, dureeMin, dureeMax };
 }
 
 export default function AdvancedSearch() {
@@ -38,6 +41,9 @@ export default function AdvancedSearch() {
   const [genres, setGenres] = useState<string[]>([]);
   const [voices, setVoices] = useState<string[]>([]);
   const [authors, setAuthors] = useState<string[]>([]);
+  const [periods, setPeriods] = useState<string[]>([]);
+  const [regions, setRegions] = useState<string[]>([]);
+  const [licences, setLicences] = useState<string[]>([]);
   const [dureeMin, setDureeMin] = useState(0);
   const [dureeMax, setDureeMax] = useState(0);
   const [page, setPage] = useState(0);
@@ -53,6 +59,9 @@ export default function AdvancedSearch() {
         setGenres(initial.genres);
         setVoices(initial.voices);
         setAuthors(initial.authors);
+        setPeriods(initial.periods);
+        setRegions(initial.regions);
+        setLicences(initial.licences);
         setDureeMin(initial.dureeMin);
         setDureeMax(initial.dureeMax);
       })
@@ -63,6 +72,9 @@ export default function AdvancedSearch() {
   const allGenres = useMemo(() => [...new Set(entries.flatMap((e) => e.g))].sort(), [entries]);
   const allVoices = useMemo(() => [...new Set(entries.flatMap((e) => e.v))].sort(), [entries]);
   const allAuthors = useMemo(() => [...new Set(entries.flatMap((e) => e.a))].sort(), [entries]);
+  const allPeriods = useMemo(() => [...new Set(entries.flatMap((e) => e.p))].sort(), [entries]);
+  const allRegions = useMemo(() => [...new Set(entries.flatMap((e) => e.r))].sort(), [entries]);
+  const allLicences = useMemo(() => [...new Set(entries.flatMap((e) => e.l))].sort(), [entries]);
   const maxDuration = useMemo(() => entries.reduce((m, e) => Math.max(m, e.d), 0), [entries]);
 
   const filtered = useMemo(() => {
@@ -70,23 +82,29 @@ export default function AdvancedSearch() {
     if (genres.length) result = result.filter((e) => genres.some((g) => e.g.includes(g)));
     if (voices.length) result = result.filter((e) => voices.some((v) => e.v.includes(v)));
     if (authors.length) result = result.filter((e) => authors.some((a) => e.a.includes(a)));
+    if (periods.length) result = result.filter((e) => periods.some((p) => e.p.includes(p)));
+    if (regions.length) result = result.filter((e) => regions.some((r) => e.r.includes(r)));
+    if (licences.length) result = result.filter((e) => licences.some((l) => e.l.includes(l)));
     if (dureeMax > 0) result = result.filter((e) => e.d >= dureeMin && e.d <= dureeMax);
     return [...result].sort((a, b) => b.w - a.w);
-  }, [entries, genres, voices, authors, dureeMin, dureeMax]);
+  }, [entries, genres, voices, authors, periods, regions, licences, dureeMin, dureeMax]);
 
   useEffect(() => {
     setPage(0);
-  }, [genres, voices, authors, dureeMin, dureeMax]);
+  }, [genres, voices, authors, periods, regions, licences, dureeMin, dureeMax]);
 
   const syncUrl = useCallback(() => {
     const params = new URLSearchParams();
     if (genres.length) params.set("genres", genres.join(","));
     if (voices.length) params.set("voix", voices.join(","));
     if (authors.length) params.set("auteurs", authors.join(","));
+    if (periods.length) params.set("periodes", periods.join(","));
+    if (regions.length) params.set("regions", regions.join(","));
+    if (licences.length) params.set("licences", licences.join(","));
     if (dureeMax > 0) params.set("duree", `${dureeMin}-${dureeMax}`);
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
-  }, [genres, voices, authors, dureeMin, dureeMax]);
+  }, [genres, voices, authors, periods, regions, licences, dureeMin, dureeMax]);
 
   useEffect(() => { syncUrl(); }, [syncUrl]);
 
@@ -94,6 +112,9 @@ export default function AdvancedSearch() {
     setGenres([]);
     setVoices([]);
     setAuthors([]);
+    setPeriods([]);
+    setRegions([]);
+    setLicences([]);
     setDureeMin(0);
     setDureeMax(0);
   };
@@ -155,6 +176,51 @@ export default function AdvancedSearch() {
                 className={`px-2 py-1 text-sm rounded border ${authors.includes(a) ? "bg-primary text-white border-primary" : "hover:bg-gray-100"}`}
               >
                 {a}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="font-medium mb-2">Périodes</legend>
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+            {allPeriods.map((p) => (
+              <button
+                key={p}
+                onClick={() => toggle(setPeriods)(p)}
+                className={`px-2 py-1 text-sm rounded border ${periods.includes(p) ? "bg-primary text-white border-primary" : "hover:bg-gray-100"}`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="font-medium mb-2">Régions</legend>
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+            {allRegions.map((r) => (
+              <button
+                key={r}
+                onClick={() => toggle(setRegions)(r)}
+                className={`px-2 py-1 text-sm rounded border ${regions.includes(r) ? "bg-primary text-white border-primary" : "hover:bg-gray-100"}`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend className="font-medium mb-2">Licences</legend>
+          <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto">
+            {allLicences.map((l) => (
+              <button
+                key={l}
+                onClick={() => toggle(setLicences)(l)}
+                className={`px-2 py-1 text-sm rounded border ${licences.includes(l) ? "bg-primary text-white border-primary" : "hover:bg-gray-100"}`}
+              >
+                {l}
               </button>
             ))}
           </div>
