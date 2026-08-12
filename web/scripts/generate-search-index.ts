@@ -1,5 +1,5 @@
-import { readFile, writeFile, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
+import { join, dirname } from "node:path";
 
 const BOOKS_DIR = join(process.cwd(), "src/content/books");
 const OUT_FILE = join(process.cwd(), "dist/search-filters.json");
@@ -33,27 +33,34 @@ interface FilterEntry {
 async function main() {
   const files = await readdir(BOOKS_DIR);
   const entries: FilterEntry[] = [];
+  let skipped = 0;
 
   for (const file of files) {
     if (!file.endsWith(".json")) continue;
-    const raw = await readFile(join(BOOKS_DIR, file), "utf-8");
-    const book: BookJson = JSON.parse(raw);
-    entries.push({
-      s: book.slug,
-      t: book.title,
-      a: book.authors.map((x) => x.slug),
-      v: book.voices.map((x) => x.slug),
-      g: book.genres.map((x) => x.slug),
-      p: book.periods.map((x) => x.slug),
-      r: book.regions.map((x) => x.slug),
-      l: book.licences.map((x) => x.slug),
-      d: book.durationTotal,
-      w: book.views,
-    });
+    try {
+      const raw = await readFile(join(BOOKS_DIR, file), "utf-8");
+      const book: BookJson = JSON.parse(raw);
+      entries.push({
+        s: book.slug,
+        t: book.title,
+        a: book.authors.map((x) => x.slug),
+        v: book.voices.map((x) => x.slug),
+        g: book.genres.map((x) => x.slug),
+        p: book.periods.map((x) => x.slug),
+        r: book.regions.map((x) => x.slug),
+        l: book.licences.map((x) => x.slug),
+        d: book.durationTotal,
+        w: book.views,
+      });
+    } catch (err) {
+      console.warn(`  ⚠ skipping ${file}: ${err instanceof Error ? err.message : String(err)}`);
+      skipped++;
+    }
   }
 
+  await mkdir(dirname(OUT_FILE), { recursive: true });
   await writeFile(OUT_FILE, JSON.stringify(entries));
-  console.log(`✓ ${entries.length} entries written to ${OUT_FILE}`);
+  console.log(`✓ ${entries.length} entries written to ${OUT_FILE}${skipped ? ` (${skipped} skipped)` : ""}`);
 }
 
 main().catch((err) => {

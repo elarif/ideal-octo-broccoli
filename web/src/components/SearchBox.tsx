@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Search, Loader2 } from "lucide-react";
 
 interface PagefindResult {
@@ -14,14 +14,26 @@ interface PagefindModule {
   search: (query: string) => Promise<{ results: PagefindResult[] }>;
 }
 
+interface EnrichedResult {
+  title: string;
+  author?: string;
+  duration?: string;
+  url: string;
+  excerpt: string;
+}
+
+const PAGE_SIZE = 10;
 let pagefind: PagefindModule | null = null;
 
 export default function SearchBox() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Array<{ title: string; author?: string; duration?: string; url: string; excerpt: string }>>([]);
+  const [allResults, setAllResults] = useState<EnrichedResult[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   const loadPagefind = useCallback(async () => {
     if (pagefind) return pagefind;
@@ -37,7 +49,8 @@ export default function SearchBox() {
 
   const runSearch = useCallback(async (q: string) => {
     if (!q.trim()) {
-      setResults([]);
+      setAllResults([]);
+      setVisibleCount(PAGE_SIZE);
       return;
     }
     setLoading(true);
@@ -49,7 +62,7 @@ export default function SearchBox() {
     try {
       const { results: raw } = await pf.search(q);
       const enriched = await Promise.all(
-        raw.slice(0, 30).map(async (r) => {
+        raw.map(async (r) => {
           const data = await r.data();
           return {
             title: data.meta.title || "(sans titre)",
@@ -60,9 +73,10 @@ export default function SearchBox() {
           };
         })
       );
-      setResults(enriched);
+      setAllResults(enriched);
+      setVisibleCount(PAGE_SIZE);
     } catch {
-      setResults([]);
+      setAllResults([]);
     } finally {
       setLoading(false);
     }
@@ -74,6 +88,8 @@ export default function SearchBox() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => runSearch(q), 300);
   };
+
+  const visibleResults = allResults.slice(0, visibleCount);
 
   return (
     <div className="space-y-4">
@@ -95,7 +111,7 @@ export default function SearchBox() {
 
       {!query && loaded && <p className="text-gray-600">Tapez un mot-clé pour rechercher dans le contenu des livres audio.</p>}
 
-      {query && !loading && results.length === 0 && loaded && (
+      {query && !loading && allResults.length === 0 && loaded && (
         <p className="text-gray-600">Aucun résultat pour « {query} ».</p>
       )}
 
@@ -104,8 +120,8 @@ export default function SearchBox() {
       )}
 
       <ul className="space-y-3">
-        {results.map((r, i) => (
-          <li key={i}>
+        {visibleResults.map((r) => (
+          <li key={r.url}>
             <a href={r.url} className="block border rounded p-3 hover:shadow transition">
               <p className="font-medium">{r.title}</p>
               {r.author && <p className="text-sm text-gray-600">{r.author}</p>}
@@ -116,7 +132,16 @@ export default function SearchBox() {
         ))}
       </ul>
 
-      {results.length > 0 && (
+      {visibleCount < allResults.length && (
+        <button
+          onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+          className="block mx-auto px-4 py-2 border rounded hover:bg-gray-100"
+        >
+          Charger plus
+        </button>
+      )}
+
+      {allResults.length > 0 && (
         <p className="text-sm text-gray-500">
           <a href="/recherche-avancee.html" className="text-primary hover:underline">Recherche par filtres →</a>
         </p>
