@@ -6,6 +6,7 @@
     "fetch:content": "tsx scripts/fetch-content.ts",
     "prebuild": "pnpm fetch:content",
     "build": "astro build",
+    "postbuild": "pagefind --site dist",
     "dev": "astro dev",
     "check": "astro check"
   },
@@ -26,6 +27,7 @@
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
+    "pagefind": "^1.5.2",
     "playwright": "^1.62.1",
     "tsx": "^4.16.0",
     "typescript": "^5.9.3",
