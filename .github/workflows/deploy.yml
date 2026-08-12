@@ -57,7 +57,7 @@ jobs:
       WP_PROXY_URL: ${{ vars.WP_PROXY_URL || 'https://litteratureaudio-cache.elarif-ahamada.workers.dev' }}
       WP_API_BASE: ${{ secrets.WP_API_BASE || 'https://www.litteratureaudio.com' }}
       SITE_URL: ${{ vars.SITE_URL || 'https://litteratureaudio.pages.dev' }}
-      FETCH_LIMIT: ${{ vars.FETCH_LIMIT || '500' }}
+      FETCH_LIMIT: ${{ vars.FETCH_LIMIT || '5000' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -76,7 +76,8 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build site
-        run: pnpm build
+        run: pnpm --filter @la/web run build
+        working-directory: .
 
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/main'
