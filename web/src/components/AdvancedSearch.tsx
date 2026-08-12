@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Search, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 interface FilterEntry {
   s: string;
@@ -63,7 +63,7 @@ export default function AdvancedSearch() {
   const allGenres = useMemo(() => [...new Set(entries.flatMap((e) => e.g))].sort(), [entries]);
   const allVoices = useMemo(() => [...new Set(entries.flatMap((e) => e.v))].sort(), [entries]);
   const allAuthors = useMemo(() => [...new Set(entries.flatMap((e) => e.a))].sort(), [entries]);
-  const maxDuration = useMemo(() => Math.max(0, ...entries.map((e) => e.d)), [entries]);
+  const maxDuration = useMemo(() => entries.reduce((m, e) => Math.max(m, e.d), 0), [entries]);
 
   const filtered = useMemo(() => {
     let result = entries;
@@ -71,7 +71,7 @@ export default function AdvancedSearch() {
     if (voices.length) result = result.filter((e) => voices.some((v) => e.v.includes(v)));
     if (authors.length) result = result.filter((e) => authors.some((a) => e.a.includes(a)));
     if (dureeMax > 0) result = result.filter((e) => e.d >= dureeMin && e.d <= dureeMax);
-    return result.sort((a, b) => b.w - a.w);
+    return [...result].sort((a, b) => b.w - a.w);
   }, [entries, genres, voices, authors, dureeMin, dureeMax]);
 
   useEffect(() => {
