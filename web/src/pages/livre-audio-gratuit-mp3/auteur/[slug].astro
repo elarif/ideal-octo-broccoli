@@ -1,34 +1,10 @@
 ---
 import { getCollection } from "astro:content";
-import Base from "../../../layouts/Base.astro";
-import BookList from "../../../components/BookList.astro";
 
 export async function getStaticPaths() {
   const authors = await getCollection("authors");
   return authors.map((author) => ({ params: { slug: author.data.slug } }));
 }
 
-const { slug } = Astro.params;
-const author = await getCollection("authors").then((all) => all.find((a) => a.data.slug === slug));
-if (!author) throw new Error(`Author not found: ${slug}`);
-
-const allBooks = await getCollection("books");
-const books = allBooks.filter((b) => b.data.authors.some((a) => a.slug === slug));
-books.sort((a, b) => b.data.publishedAt.getTime() - a.data.publishedAt.getTime());
-
-const pageParam = Astro.url.searchParams.get("page");
-const currentPage = Math.max(1, Number(pageParam) || 1);
+return Astro.redirect(`/livre-audio-gratuit-mp3/auteur/${Astro.params.slug}/1`);
 ---
-
-<Base
-  title={`Livres audio de ${author.data.name} | Litteratureaudio.com`}
-  description={`Écoutez et téléchargez gratuitement les livres audio de ${author.data.name}.`}
->
-  <BookList
-    books={books}
-    title={`Livres audio de ${author.data.name}`}
-    currentPage={currentPage}
-    pageSize={24}
-    baseUrl={`/livre-audio-gratuit-mp3/auteur/${slug}.html`}
-  />
-</Base>
