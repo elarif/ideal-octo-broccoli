@@ -26,7 +26,8 @@ export default function SearchBox() {
   const loadPagefind = useCallback(async () => {
     if (pagefind) return pagefind;
     try {
-      pagefind = await import(/* @vite-ignore */ "/pagefind/pagefind.js");
+      const pagefindUrl = "/pagefind/pagefind.js";
+      pagefind = await import(/* @vite-ignore */ pagefindUrl);
       setLoaded(true);
       return pagefind;
     } catch {
