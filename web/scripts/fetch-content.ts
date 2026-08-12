@@ -67,6 +67,16 @@ function extractCover(post: WpPost) {
   };
 }
 
+async function fetchWithConcurrency<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    results.push(...await Promise.all(batch.map(fn)));
+    process.stdout.write(`  fetched ${Math.min(i + concurrency, items.length)}/${items.length}\r`);
+  }
+  return results;
+}
+
 async function main() {
   await mkdir(BOOKS_OUT, { recursive: true });
   console.log(`→ Fetch up to ${FETCH_LIMIT} books from WordPress…`);
@@ -106,8 +116,9 @@ async function main() {
   }
 
   console.log("→ Write books JSON…");
+  const WRITE_CONCURRENCY = 15;
   let written = 0;
-  for (const post of posts) {
+  await fetchWithConcurrency(posts, WRITE_CONCURRENCY, async (post) => {
     const metaDurationSec = Math.round((post.meta?.duration ?? 0) / 1000);
     const tracks = (tracksByParent.get(post.id) || []).sort((a, b) =>
       (a.media_details?.menu_order ?? a.id) - (b.media_details?.menu_order ?? b.id)
@@ -152,7 +163,7 @@ async function main() {
     };
     await writeFile(join(BOOKS_OUT, `${slug}.json`), JSON.stringify(book, null, 2));
     written++;
-  }
+  });
   console.log(`✓ ${written} books written to ${BOOKS_OUT}`);
 }
 
