@@ -7,11 +7,6 @@ export default defineConfig({
   site: process.env.SITE_URL || "https://litteratureaudio.pages.dev",
   output: "static",
   trailingSlash: "never",
-  build: {
-    format: "file",
-    rollupOptions: {
-      external: ["/pagefind/pagefind.js"],
-    },
-  },
+  build: { format: "file" },
   integrations: [tailwind({ applyBaseStyles: false }), sitemap(), react()],
 });
